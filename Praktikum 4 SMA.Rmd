@@ -1,0 +1,277 @@
+---
+title: "Praktikum 4 SMA"
+author: "Antonius Aditya Rizky Wijaya"
+date: "2025-09-10"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# NOMOR 1
+
+Kita tahu kalau:
+$$ X \sim \Gamma\left(shape=\frac{r}{2}, scale=2 \right) \sim \chi^2_r $$
+
+Bukti bisa dilihat dari fkp sebaran $\chi^2_r$:
+$$f(x)=\frac{1}{2^{\frac{r}{2}}.\Gamma(\frac{r}{2})}.x^{\frac{r}{2}-1}.e^{-\frac{x}{2}}$$
+Dimana fkp ini sama dengan fkp sebaran $\Gamma(\frac{r}{2}, 2)$
+
+Kita juga tahu kalau 
+$$ Z \sim N(0,1) $$
+maka 
+$$ Z^2 \sim \chi^2_1 $$
+
+Sehingga jika $W \sim \Gamma(\frac{1}{2}, 2)$, maka $W = Z^2 \sim \chi^2_1$, yang artinya
+$$ \sqrt{W} = Z \sim N(0,1)$$
+```{r}
+set.seed(123)
+n <- 100
+W <- rgamma(n, shape=0.5, scale = 2) #~ chi_kuadrat, df = 1
+tanda <- ifelse(runif(n) > 0.5, 1, -1)
+data <- tanda * sqrt(W)
+
+batas <- c(-Inf, -2, -1, 0, 1, 2, Inf)
+hist(data, breaks=batas, xlim = c(-3,3))
+oi <- hist(data, breaks=batas, plot=FALSE)$counts
+names(oi) <- c("(-inf,-2)", "[-2,-1)", "[-1,0)", "[0,1)", "[1,2)", "[2,inf)")
+print("Tabel Frekuensi Observasi:")
+print(oi)
+
+peluang <- c(pnorm(-2), pnorm(-1)-pnorm(-2), pnorm(0)-pnorm(-1), pnorm(1)-pnorm(0), pnorm(2)-pnorm(1), 1-pnorm(2))
+ei <- n*peluang
+
+# Manual
+diskrepansi <- function(oi, ei) {
+  d <- sum((oi - ei)^2 / ei)
+  return(d)
+}
+hasil_d <- diskrepansi(oi,ei)
+p_value <- 1 - pchisq(hasil_d, df = (length(oi)-1))
+
+# Dengan function
+hasil_tes <- chisq.test(oi, p=peluang)
+
+# Tampilkan hasil
+cat("Peluang teoritis pada selang ke i (pi_i):\n", round(peluang, 4), "\n")
+cat("\nEkspektasi banyak data pada selang ke i (e_i):\n", round(ei, 2), "\n")
+cat("\np_value manual:", round(p_value, 4), "\n")
+print(hasil_tes)
+```
+_p-value_ $= 0.4085 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, 100 nilai data tersebut menyebar normal baku.
+
+```{r}
+library(fitdistrplus)
+descdist(data, discrete = FALSE)
+```
+
+# NOMOR 2
+## 2a
+```{r}
+orang <- 0:6
+jam <- c(0, 6, 5, 4, 4, 3, 2)
+data_pengunjung <- rep(orang, jam)
+cat("Data:\n", data_pengunjung)
+total_orang <- sum(jam * orang)
+cat("\nTotal orang:", total_orang, "\n")
+n <- length(data_pengunjung)
+cat("Total data:", n, "\n")
+lambda <- total_orang / n
+cat("Estimasi lambda:", round(lambda, 4), "\n")
+```
+```{r}
+set.seed(123)
+x <- c(0:15)
+y <- dpois(x, lambda)
+plot(x, y)
+
+data_fmp <- data.frame(x,round(y, 4))
+colnames(data_fmp) <- c("x", "f(x)")
+print(data_fmp)
+```
+```{r}
+prob <- dpois(2, lambda) + dpois(3, lambda) + dpois(6, lambda);prob
+```
+
+```{r}
+o1 <- NULL
+o2 <- NULL
+for(i in data_pengunjung){
+  if(i == 2 | i == 3 | i == 6){
+    o1 <- c(o1, i)
+  }
+  else{
+    o2 <- c(o2, i)
+  }
+}
+oi <- c(length(o1), length(o2))
+
+e1 <- n*prob
+e2 <- n*(1-prob)
+ei <- c(e1, e2)
+```
+
+```{r}
+d <- sum((oi - ei)^2/ei)
+p_value <- 1 - pchisq(d, df = length(oi) - 1)
+cat("Diskrepansi =", d, "\n")
+cat("P-value =", p_value)
+```
+
+```{r}
+# Dengan function
+uji_chi <- chisq.test(oi, p=c(prob, 1-prob))
+cat("\nHasil:\n")
+print(uji_chi)
+```
+
+_p-value_ $= 0.6872 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan uji chi-squared dengan kepercayaan $95$%, banyaknya orang yang datang menyebar Poisson.
+
+## 2b
+```{r}
+# Uji Kolmogorov-Smirnov
+ks.test(data_pengunjung, "ppois", lambda = lambda, alternative = "two.sided", simulate.p.value = TRUE)
+```
+_p-value_ $= 0.2631 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan uji K-S dengan kepercayaan $95$%, banyaknya orang yang datang menyebar Poisson.
+
+```{r}
+descdist(data_pengunjung, discrete = TRUE)
+```
+
+# NOMOR 3
+
+## 3a
+```{r}
+data <- c(6.5, 4.6, 5.6, 8.5, 6.0, 6.9, 4.4, 6.3, 6.2, 7.0, 5.7, 6.1)
+
+library(fitdistrplus)
+descdist(data, discrete = FALSE)
+```
+```{r, warning = FALSE}
+norm <- fitdist(data, "norm", method = "mle")
+print(norm)
+logLik(norm)
+```
+
+```{r, warning = FALSE}
+lnorm <- fitdist(data, "lnorm", method = "mle")
+print(lnorm)
+logLik(lnorm)
+```
+
+```{r}
+gamma <- fitdist(data, "gamma", method = "mle")
+print(gamma)
+logLik(gamma)
+```
+
+```{r, warning = FALSE}
+cat("Loglikelihood normal: ", logLik(norm), "\n")
+cat("Loglikelihood normal: ", logLik(lnorm), "\n")
+cat("Loglikelihood normal: ", logLik(gamma), "\n")
+```
+Gamma fit terbaik dengan nilai loglikelihood terbesar.
+
+## 3b
+```{r}
+set.seed(123)
+x <- c(0:10000)/1000
+y <- pgamma(x, shape = gamma$estimate["shape"], rate = gamma$estimate["rate"])
+plot(ecdf(data), xlim = c(0,10), col = "red", ylab = "F(x)", main = "FKPE vs FKP Gamma")
+lines(x, y, col = "green", lwd = 1)
+legend("topleft", legend = c("Empiris", "Gamma"), col = c("red", "green"), bty = "n", lwd = 2)
+```
+Plot CDF menunjukkan kesesuaian baik (titik hampir linear), konfirmasi visual gamma cocok.
+
+## 3c
+```{r}
+r <- 2
+ei <- 5
+
+q <- qgamma(0.5, shape=gamma$estimate["shape"], rate=gamma$estimate["rate"])
+o1 <- sum(data <= q)
+o2 <- sum(data > q)
+oi <- c(o1, o2)
+
+d <- sum((oi-ei)^2 / ei)
+p_value <- 1-pchisq(d, df = r-1)
+
+cat("Diskrepansi =", d, "\n")
+cat("P-value =", p_value)
+```
+_p-value_ $= 0.3711 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan uji chi-squared dengan kepercayaan $95$%, data mengikuti sebaran gamma.
+
+## 3d
+```{r}
+ks.test(data, "pgamma", shape=gamma$estimate["shape"], rate=gamma$estimate["rate"], alternative = "two.sided", simulate.p.value = TRUE)
+```
+_p-value_ $= 0.9291 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan uji K-S dengan kepercayaan $95$%, data mengikuti sebaran gamma.
+
+
+# NOMOR 4
+```{r}
+nilai_uas <- c(30, 47, 84, 54, 56, 70, 45, 10, 21, 61, 52, 61)
+rata_rata <- mean(nilai_uas)
+standar_deviasi <- sd(nilai_uas)
+cat("Rata-rata:", round(rata_rata, 2), "\n")
+cat("Standar deviasi:", round(standar_deviasi, 2), "\n")
+
+ks.test(nilai_uas, "pnorm", mean=rata_rata, sd=standar_deviasi, alternative = "two.sided", simulate.p.value = TRUE)
+```
+
+```{r}
+# Data nilai UAS
+nilai_uas <- c(30, 47, 84, 54, 56, 70, 45, 10, 21, 61, 52, 61)
+
+# Langkah 1: Estimasi parameter
+rata_rata <- mean(nilai_uas)
+standar_deviasi <- sd(nilai_uas)
+cat("Estimasi μ:", round(rata_rata, 2), "\n")
+cat("Estimasi σ:", round(standar_deviasi, 2), "\n")
+
+# Langkah 2: Urutkan data dan hitung ECDF
+data_urut <- sort(nilai_uas)
+n <- length(data_urut)
+i <- 1:n
+F_n <- i / n  # ECDF di titik data ke-i
+
+# Langkah 3: Hitung CDF teoritis di titik data
+F_teoritis <- pnorm((data_urut - rata_rata) / standar_deviasi)
+
+# Langkah 4: Hitung perbedaan absolut dan statistik D
+perbedaan_abs <- abs(F_n - F_teoritis)
+D_manual <- max(perbedaan_abs)
+cat("\nStatistik D manual (di titik data):", round(D_manual, 4), "\n")
+
+# Perbaikan: Cek lebih banyak titik (interpolasi sederhana)
+x_grid <- seq(min(data_urut) - 5, max(data_urut) + 5, length.out = 100)
+F_n_interp <- approx(data_urut, F_n, xout = x_grid, rule = 2)$y
+F_teoritis_interp <- pnorm((x_grid - rata_rata) / standar_deviasi)
+D_interp <- max(abs(F_n_interp - F_teoritis_interp))
+cat("Statistik D manual (interpolasi):", round(D_interp, 4), "\n")
+
+# Langkah 5: Nilai kritis untuk n=12, α=0.05 (approximate)
+nilai_kritis <- 0.46  # Dari tabel K-S one-sample
+cat("Nilai kritis (α=0.05):", nilai_kritis, "\n")
+
+# Keputusan
+if (D_interp < nilai_kritis) {
+  cat("Kesimpulan: Tidak tolak H_0 (data mungkin normal).\n")
+} else {
+  cat("Kesimpulan: Tolak H_0 (data tidak normal).\n")
+}
+
+# p-value approximate (Lilliefors adjustment)
+p_value_approx <- exp(-7.01256 * D_interp^2 * (n + 2.16) / (n + 0.12 + 0.11 / n))  # Aproksimasi untuk normal
+cat("p-value approximate (Lilliefors):", round(p_value_approx, 4), "\n")
+```
+
+Diskrepansi D = 0.16874 sangat kecil, menunjukkan jarak antara FSK empiris data dan FSK normal(49.25, 20.72^2) hampir nol, dan data sangat dekat dengan distribusi normal.
+
+_p-value_ $= 0.8841 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan uji K-S dengan kepercayaan $95$%, data nilai UAS ini berasal dari distribusi normal $ N(49.25, 20.72^2) $
+
+```{r}
+descdist(nilai_uas, discrete = FALSE)
+```
+

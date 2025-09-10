@@ -1,0 +1,342 @@
+---
+title: "Praktikum 1 SMA"
+author: "Antonius Aditya Rizky Wijaya"
+date: "2025-08-20"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+UT <- c(89, 31, 60, 31, 24, 40, 23, 25, 44, 21, 36, 45, 72, 43, 33, 71, 45, 47)
+UP <- c(70, 45, 28, 29, 21, 67, 49, 21, 57, 60, 33, 59, 65, 57, 65, 71, 83, 85)
+```
+
+#1a
+```{r}
+mean_UT <- mean(UT)
+mean_UP <- mean(UP)
+var_UT <- var(UT)
+var_UP <- var(UP)
+sd_UT <- sd(UT)
+sd_UP <- sd(UP)
+
+summary_table <- data.frame(
+  Statistik = c("Mean", "Variance", "Standard Deviation"),
+  UT = c(mean_UT, var_UT, sd_UT),
+  UP = c(mean_UP, var_UP, sd_UP)
+)
+print(summary_table)
+
+# Interpretasi
+cat("\n1. Mean UT:", mean_UT, "| Mean UP:", mean_UP, 
+    "\n   - UP memiliki mean lebih besar",
+    "\n   - Makna: Rata-rata nilai praktik lebih tinggi",
+    "\n\n2. Variance UT:", var_UT, "| Variance UP:", var_UP,
+    "\n   - UP memiliki variance lebih besar",
+    "\n   - Makna: Variasi nilai praktik lebih heterogen",
+    "\n\n3. SD UT:", sd_UT, "| SD UP:", sd_UP,
+    "\n   - UP memiliki SD lebih besar",
+    "\n   - Makna: Sebaran nilai praktik lebih luas"
+)
+```
+
+#1b
+```{r}
+plot(UT, UP, main = "Scatterplot UT vs UP", xlab = "Ujian Teori", ylab = "Ujian Praktik", pch = 16, col = "blue")
+
+cov_sample <- cov(UT, UP)
+cor_sample <- cor(UT, UP)
+
+cat("Sample Covariance:", cov_sample, "\n")
+cat("Sample Correlation:", cor_sample)
+```
+Nilai covariance positif (169.49) menunjukkan bahwa nilai UT dan UP cenderung bergerak bersama-sama dalam arah yang sama, ketika nilai UT tinggi, nilai UP juga cenderung tinggi, dan sebaliknya. Namun, nilai ini tidak terstandarisasi, sehingga sulit dibandingkan dengan data lain.
+
+Nilai correlation sekitar 0.45 menunjukkan hubungan positif sedang antara UT dan UP. Artinya, ada kecenderungan bahwa mahasiswa dengan nilai UT tinggi juga memiliki nilai UP tinggi, tetapi hubungannya tidak sangat kuat (tidak mendekati 1).
+
+Scatterplot menunjukkan pola naik dari kiri bawah ke kanan atas, tapi dengan penyebaran poin yang cukup lebar, mengonfirmasi korelasi positif moderat.
+
+
+#2a
+```{r}
+klaim <- c(0, 1, 2, 3, 4)
+freq <- c(63232, 4333, 271, 18, 2)
+n <- sum(freq)
+
+total_klaim <- sum(klaim * freq)
+mean_klaim <- total_klaim / n
+
+total_klaim_sq <- sum((klaim^2) * freq)
+var_klaim <- (total_klaim_sq / n) - (mean_klaim^2)
+
+cat("Rata-rata banyaknya klaim:", mean_klaim, "\n")
+cat("Ragam (variance) banyaknya klaim:", var_klaim, "\n")
+```
+Karena rata-rata banyaknya klaim dan ragam banyaknya klaim hampir sama (0.0728 ≈ 0.0774), sebaran diskret yang cocok adalah sebaran Poisson.
+
+Kemudian, dengan metode maximum likelihood, diestimasi parameter dari sebaran Poisson, yaitu parameter λ ≈ 0.07275701.
+
+#2b
+```{r}
+klaim <- c(0, 1, 2, 3, 4)
+freq <- c(63232, 4333, 271, 18, 2)
+total_polis <- sum(freq)
+lambda <- sum(klaim * freq) / total_polis
+fmp_poisson <- dpois(klaim, lambda)
+
+data_klaim <- rep(klaim, freq)
+prob_empiris <- freq / total_polis
+
+hist_data <- hist(data_klaim, breaks = seq(-0.5, 4.5, by = 1), main = "Histogram Banyaknya Klaim dengan FMP Poisson", xlab = "Banyaknya Klaim", ylab = "Probabilitas", col = "lightblue", prob = TRUE, ylim = c(0, 1))
+
+# kurva FMP Poisson
+points(klaim, fmp_poisson, pch = 19, col = "red")
+lines(klaim, fmp_poisson, col = "red", lwd = 2)
+
+legend("topright", legend = c("Data Empiris", "FMP Poisson"), col = c("lightblue", "red"), pch = c(15, 19), lty = c(0, 1), pt.cex = c(2, 1), lwd = c(0, 2))
+
+text(x = hist_data$mids, y = prob_empiris, 
+     labels = round(prob_empiris, 4), 
+     pos = 3, cex = 0.8, col = "darkblue")
+
+text(x = klaim + 0.1, y = fmp_poisson, 
+     labels = round(fmp_poisson, 4), 
+     pos = 4, cex = 0.8, col = "red")
+```
+Berdasarkan visualisasi, sebaran poisson terlihat cocok untuk memodelkan data, meskipun ada sedikit ketidakpasan. Probabilitas tinggi pada 0, menurun tajam pada 1-4, dan nilai observasi mendekati nilai teori Poisson, meskipun ada sedikit perbedaan kecil karena variance sedikit lebih besar dari mean.
+
+#2c
+```{r}
+set.seed(123)
+n_simulasi <- 1000
+n_polis_baru <- 74641
+rata_eksponensial <- 1000
+rate_eksponensial <- 1 / rata_eksponensial
+
+total_klaim_simulasi <- numeric(n_simulasi)
+for (i in 1:n_simulasi) {
+  # jumlah klaim Poisson
+  klaim_per_polis <- rpois(n_polis_baru, lambda)
+  total_klaim_events <- sum(klaim_per_polis)
+  # besar klaim eksponensial
+  besar_klaim <- rexp(total_klaim_events, rate = rate_eksponensial)
+  total_klaim_simulasi[i] <- sum(besar_klaim)
+}
+
+peluang <- mean(total_klaim_simulasi > 5500000)
+cat("Peluang total klaim > $5,500,000:", peluang, "\n")
+
+hist(total_klaim_simulasi, breaks = 30, col = "green", main = "Distribusi Total Klaim dari 1000 Simulasi", xlab = "Total Klaim ($)", ylab = "Frekuensi")
+abline(v = 5500000, col = "red", lwd = 2)
+text(x = 5500000 * 1.02, y = par("usr")[4] * 0.9, labels = paste("Target:", 5500000), col = "red", pos = 4)
+
+cat("\nRingkasan statistik total klaim:\n")
+cat("Rata-rata:", mean(total_klaim_simulasi), "\n")
+cat("Standar deviasi:", sd(total_klaim_simulasi), "\n")
+cat("Minimum:", min(total_klaim_simulasi), "\n")
+cat("Maksimum:", max(total_klaim_simulasi))
+```
+Simulasi menunjukkan ada peluang sekitar 23.9% bahwa total klaim melebihi $5,500,000 pada tahun berikutnya.
+
+
+#3a
+```{r}
+skewness <- function(x) {
+  n <- length(x)
+  x_bar <- mean(x)
+  s2 <- mean((x - x_bar)^2)  # Variance populasi untuk konsistensi formula
+  s3 <- (mean((x - x_bar)^2))^(3/2)  # (s^2)^(3/2)
+  skew <- (mean((x - x_bar)^3)) / s3
+  return(skew)
+}
+
+# Contoh data dari Chi-Kuadrat (df = 3)
+set.seed(123)
+x <- rchisq(100, df = 3)
+cat("Sample Skewness:", skewness(x), "\n")
+```
+
+#3b
+```{r}
+kurtosis <- function(x) {
+  n <- length(x)
+  x_bar <- mean(x)
+  s2 <- mean((x - x_bar)^2)  # Variance populasi
+  s4 <- (mean((x - x_bar)^2))^2  # (s^2)^2
+  kurt <- (mean((x - x_bar)^4)) / s4
+  return(kurt)
+}
+
+# Contoh data dari Chi-Kuadrat
+set.seed(123)
+x <- rchisq(100, df = 3)  # Simulasi 100 data
+cat("Sample Kurtosis:", kurtosis(x), "\n")
+```
+
+#3c
+```{r}
+set.seed(123)
+n_sim <- 1000
+x_sim <- rchisq(n_sim, df = 3) #chi kuadrat dengan derajat bebas 3
+
+skew_val <- skewness(x_sim)
+kurt_val <- kurtosis(x_sim)
+
+# Visualisasi
+hist(x_sim, main = "Histogram dengan Kurva Kepadatan Chi-Kuadrat", xlab = "Nilai", ylab = "Densitas", col = "lightblue", prob = TRUE, breaks = 20)
+curve(dchisq(x, df = 3), col = "red", lwd = 2, add = TRUE, from = 0, to = max(x_sim))
+
+cat("Sample Skewness:", skew_val, "\n")
+cat("Sample Kurtosis:", kurt_val, "\n")
+
+if (abs(skew_val) < 0.5) {
+  cat("Interpretasi: Data memiliki distribusi simetris (skewness mendekati 0).\n")
+} else {
+  cat("Interpretasi: Data tidak simetris (skewness signifikan).\n")
+}
+if (abs(kurt_val - 3) < 0.5) {  # Bandingkan dengan kurtosis normal (3)
+  cat("Interpretasi: Data mesokurtic (kurtosis mendekati 3).\n")
+} else if (kurt_val > 3.5) {
+  cat("Interpretasi: Data leptokurtic (kurtosis > 3).\n")
+} else {
+  cat("Interpretasi: Data platykurtic (kurtosis < 3).\n")
+}
+```
+
+#3d
+```{r}
+set.seed(123)
+n_data <- 1000
+n_per_sample <- 100
+sim_data <- replicate(n_data, rchisq(n_per_sample, df = 3))
+
+skew_means <- apply(sim_data, 2, skewness)
+kurt_means <- apply(sim_data, 2, kurtosis)
+
+mean_skew <- mean(skew_means)
+mean_kurt <- mean(kurt_means)
+
+cat("Rata-rata Sample Skewness dari 1000 data:", mean_skew, "\n")
+cat("Rata-rata Sample Kurtosis dari 1000 data:", mean_kurt, "\n")
+```
+
+#3e
+```{r}
+set.seed(123)
+skewd <- (2^1.5)/sqrt(3)
+kurtd <- 3 + (12/3)
+
+cat("Skewness =", skewd, "\n")
+cat("Kurtosis =", kurtd)
+```
+
+#3f
+```{r}
+set.seed(123)
+skewf <- NULL
+kurtf <- NULL
+chi <- rchisq(1000, 3)
+
+for(i in 1:100){
+  skewf[i] <- skewness(chi)
+  kurtf[i] <- kurtosis(chi)
+}
+
+skew <- mean(skewf)
+kurt <- mean(kurtf)
+
+cat("Skewness =", skew, "\n")
+cat("Kurtosis =",kurt)
+```
+
+#4a
+```{r}
+# Jika ingin langsung ambil data dari Yahoo Finance:
+if (!require("quantmod")) install.packages("quantmod")
+library(quantmod)
+getSymbols("MSFT", from = "2023-05-15", to = "2023-08-15", src = "yahoo")
+Pt <- Ad(MSFT)
+rt <- Pt/lag(Pt) - 1
+rt <- na.omit(rt)
+
+## Jika punya datanya:
+#setwd("D:/IPB UNIVERSITY/PERKULIAHAN/Semester 7/Simulasi Model Aktuaria/Praktikum/Praktikum 1")
+#data_msft <- read.csv("MSFT.csv", header = TRUE, stringsAsFactors = FALSE)
+#data_msft$Date <- as.Date(data_msft$Date)
+#Pt <- data_msft$Adj.Close
+#rt <- numeric(length(Pt) - 1)
+#for (i in 2:length(Pt)) {
+#  rt[i-1] <- Pt[i] / Pt[i-1] - 1
+#}
+
+cat("Ringkasan Statistik Return Harian MSFT:\n")
+print(summary(as.numeric(rt)))
+```
+
+#4b
+```{r}
+hist(as.numeric(rt), breaks = 30, main = "Histogram Return Harian MSFT\n(15 Mei - 14 Agustus 2023)", xlab = "Return Harian", ylab = "Frekuensi", col = "lightblue", border = "black")
+```
+Berdasarkan bentuk histogram, sebaran normal mungkin cocok untuk memodelkan data.
+
+```{r}
+# Menduga parameter distribusi normal dengan metode maximum likelihood
+rata_rata <- mean(rt)
+st_dev <- sd(rt)
+
+cat("Parameter Distribusi Normal (Metode Maximum Likelihood):\n")
+cat("- Rata-rata (mean):", round(rata_rata, 6), "\n")
+cat("- Standar Deviasi:", round(st_dev, 6))
+```
+#4c
+```{r}
+hist(as.numeric(rt), breaks = 30, main = "Histogram Return Harian dengan Distribusi Normal", xlab = "Return Harian", ylab = "Probabilitas", col = "lightblue", border = "black", probability = TRUE)
+
+kurva_x <- seq(min(rt), max(rt), length = 100)
+kurva_y <- dnorm(kurva_x, mean = rata_rata, sd = st_dev)
+lines(kurva_x, kurva_y, col = "red", lwd = 2)
+
+legend("topright", legend = c("Data Historis", "Distribusi Normal"), col = c("lightblue", "red"), lty = c(1, 1), lwd = c(10, 2), bty = "n")
+```
+Berdasarkan visualisasi, sebaran normal terlihat cukup cocok untuk memodelkan data return harian MSFT, meskipun mungkin ada sedikit ketidakpasan.
+
+#4d
+```{r}
+harga_terakhir <- as.numeric(tail(Pt, 1))
+cat("Harga penutupan terkini (14 Agustus 2023): $", round(harga_terakhir, 2), "\n")
+
+set.seed(123)
+jumlah_simulasi <- 1000
+simulasi_return <- matrix(rnorm(3 * jumlah_simulasi, mean = rata_rata, sd = st_dev), nrow = jumlah_simulasi, ncol = 3)
+
+# Harga simulasi 17 Agustus 2023
+harga_simulasi <- harga_terakhir * apply(1 + simulasi_return, 1, prod)
+
+probabilitas <- round(mean(harga_simulasi > 325), 3)
+cat("Hasil Simulasi (1000 pengulangan):\n")
+cat("Probabilitas harga penutupan pada 17 Agustus 2023 > $325 adalah", probabilitas, "\n")
+
+# Visualisasi hasil simulasi
+hist(harga_simulasi,
+     breaks = 30,
+     main = "Distribusi Harga Simulasi untuk 17 Agustus 2023",
+     xlab = "Harga Penutupan",
+     ylab = "Frekuensi",
+     col = "lightgreen",
+     border = "black")
+
+# Menambahkan garis vertikal pada $325
+abline(v = 325, col = "red", lwd = 2, lty = 2)
+
+# Menambahkan legenda
+legend("topright", 
+       legend = c("Distribusi Harga", "Nilai $325"),
+       col = c("lightgreen", "red"),
+       lty = c(1, 2),
+       lwd = c(10, 2),
+       bty = "n")
+```
+

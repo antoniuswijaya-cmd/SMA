@@ -1,0 +1,189 @@
+---
+title: "Praktikum 3 SMA"
+author: "Antonius Aditya Rizky Wijaya"
+date: "2025-09-03"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# NOMOR 1
+> **Uji hipotesis dua contoh tak bebas**
+
+Karena pemilihan 150 pasang mahasiswa yang memiliki kemampuan MBL yang sama, dapat diasumsikan bahwa ini adalah 2 contoh acak yang tak bebas. 
+
+Hipotesis: 
+$$H_0: \mu_d \leq 5$$
+$$H_a: \mu_d > 5$$
+Dengan $d$ adalah selisih dari nilai-nilai kelas B dan kelas A :
+$$\mu_d = \mu_B - \mu_A$$
+Diskrepansi:
+$$d = \frac{\hat \mu_d - \mu_0}{\frac{\hat \sigma_d}{\sqrt{n_d}}}$$
+Karena $H_a: \mu_d > 5$, maka _p-value_ = $Pr(D > d) = 1 - Pr(D \leq d)$
+
+```{r}
+kelas_a <- c(70, 65, 81, 85, 80, 60, 50, 83, 77, 81, 65, 45, 40, 52, 82, 80, 62, 46, 42, 61)
+kelas_b <- c(70, 65, 81, 87, 80, 62, 50, 88, 78, 80, 65, 45, 42, 60, 83, 80, 63, 45, 45, 61)
+
+# Manual
+selisih <- kelas_b - kelas_a
+
+diskrepansi <- (mean(selisih) - 5) / (sd(selisih)/sqrt(length(selisih)))
+cat("Diskrepansi:", diskrepansi, "\n")
+
+p_value <- 1 - pnorm(diskrepansi)
+cat("p-value:", p_value, "\n")
+```
+
+```{r}
+# Menggunakan function
+t.test(kelas_b, kelas_a, paired = TRUE, alternative = "greater", mu = 5, conf.level = 0.95)
+```
+
+_p-value_ $= 1 > 0.10$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, tidak terbukti bahwa pengajaran di kelas B lebih bagus sehingga beda nilai rataannya lebih besar dari 5 poin.
+
+# NOMOR 2
+> **Membangun selang kepercayaan dan uji hipotesis rata-rata contoh tunggal**
+
+## 2a
+selang kepercayaan $95$% untuk prediksi harga saham setelah 20 hari
+
+```{r}
+n <- 49        
+mean <- 11.35
+sd <- 0.48
+alpha <- 0.05
+
+z_kritis <- qnorm(1 - alpha/2)
+error <- z_kritis * (sd / sqrt(n))
+
+batas_bawah <- mean - error
+batas_atas <- mean + error
+cat("Selang Kepercayaan 95% :[", batas_bawah, ",", batas_atas, "]\n")
+```
+
+## 2b
+apakah ada bukti bahwa harga saham akan lebih dari US$ 11 setelah 20 hari berdasarkan selang kepercayaan?
+
+```{r}
+if (batas_bawah > 11) {
+  cat("Ada bukti statistik bahwa harga saham akan > US$ 11 setelah 20 hari (seluruh SK > 11).\n")
+} else {
+  cat("Tidak ada bukti statistik bahwa harga saham akan > US$ 11 setelah 20 hari.\n")
+}
+```
+Karena seluruh selang kepercayaan (11.2156 hingga 11.4844) berada di atas 11, kita bisa berargumen bahwa rata-rata prediksi harga saham akan lebih dari USD 11 dalam 20 hari (dengan $95$% kepercayaan).
+
+## 2c
+mengevaluasi kemungkinan harga saham rata-rata kurang dari US$ 11 setelah 20 hari dan melakukan uji hipotesis untuk rata-rata contoh tunggal.
+
+Kita lakukan uji hipotesis satu arah dengan :
+$$H_0: μ ≥ 11$$
+$$H_a: μ < 11$$
+Diskrepansi :
+$$d = \frac{\hat \mu - \mu_0}{\frac{\hat \sigma}{\sqrt{n}}}$$
+Karena $H_a: \mu < 11$, maka _p-value_ = $Pr(D < d)$
+```{r}
+mu0 <- 11
+diskrepansi <- (mean - mu0) / (sd / sqrt(n))
+cat("Diskrepansi:", diskrepansi, "\n")
+
+p_value <- pnorm(diskrepansi)
+cat("p-value :", p_value, "\n")
+```
+_p-value_ $= 0.99 > 0.10$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, tidak mungkin nilai rata-rata dari harga saham kurang dari US$ 11 setelah 20 hari.
+
+# NOMOR 3
+> **Uji hipotesis dua proporsi**
+
+Uji hipotesis dilakukan untuk dua proporsi antara pelayanan dengan 1 kasir dan dengan 2 kasir. Waktu antri pelanggan yang $> 2$ menit dianggap sebagai kegagalan karena pelanggan tidak menerima pelayanan dengan **baik** (berhasil ketika waktu antre $\leq 2$ menit).
+
+Kita diminta untuk menguji apakah ada perbedaan proporsi keberhasilan ketika hanya ada 1 kasir dibandingkan dengan ada 2 kasir. Artinya kita perlu menguji apakah $\pi_1$ berbeda dengan $\pi_2$ atau tidak.
+
+Definisikan hipotesis :
+$$H_0: \pi_1 - \pi_2 = 0$$
+$$H_a: \pi_1 - \pi_2 \neq 0$$
+Dengan $\pi_1$ adalah proporsi keberhasilan dengan 1 kasir dan $\pi_2$ adalah proporsi keberhasilan dengan 2 kasir. 
+
+Diskrepansi :
+$$d = \frac{\hat \pi_1 - \hat \pi_2}{\sqrt{(1-\hat \pi)\hat \pi(\frac{1}{n_1}+\frac{1}{n_2})}}$$
+dengan
+$$\hat \pi = \frac{n_1 \hat \pi_1 + n_2 \hat \pi_2}{n_1 + n_2}$$
+Karena $H_a: \pi_1 - \pi_2 \neq 0$, maka _p-value_ = $2Pr(D > |d|) = 2(1 - Pr(D \leq |d|))$
+
+```{r}
+waktu_1_kasir <- c(2,1,1,1,1,1,1,3,3,2,2,2,4,3,2,2,2,2,1,2,2,2,2,3,3,3,2,1,1,1,1,1,2,3,3,4,4,2,2,2,2,2,2,2,2)
+waktu_2_kasir <- c(1,1,1,1,1,1,1,3,3,1,1,2,2,2,3,3,2,2,2,2,3,3,1,1,1,1,2,3,3,3,2,2,2,1,1,1,1,1,2,3,3,4,3,3,3,2,1,1,2,3,1,2,2,1)
+
+# Manual
+berhasil1 <- sum(waktu_1_kasir <= 2)
+n1 <- length(waktu_1_kasir)
+
+berhasil2 <- sum(waktu_2_kasir <= 2)
+n2 <- length(waktu_2_kasir)
+
+pi1 <- berhasil1/n1
+pi2 <- berhasil2/n2
+pi <- ((n1*pi1) + (n2*pi2))/(n1 + n2)
+
+diskrepansi <- (pi1 - pi2) / (sqrt((1-pi)*pi*((1/n1)+(1/n2))))
+cat("Diskrepansi:", diskrepansi, "\n")
+
+p_value <- 2 * (1 - pnorm(abs(diskrepansi)))
+cat("p-value:", p_value, "\n")
+```
+```{r}
+# Menggunakan function
+prop.test(x = c(berhasil1, berhasil2), n = c(n1, n2), alternative = "two.sided", correct = FALSE, conf.level = 0.95)
+```
+_p-value_ $= 0.56 > 0.10$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, tidak ada perbedaan proporsi pelanggan yang menerima pelayanan yang baik ketika hanya ada satu kasir yang buka dibandingkan dengan ada dua kasir yang buka.
+
+# NOMOR 4
+> **Uji hipotesis proporsi contoh tunggal berdasarkan _p-value_, dan menghitung selang kepercayaan untuk total nasabah yang melakukan klaim.**
+
+Perusahaan asuransi memprediksi bahwa proporsi nasabah yang mengajukan satu klaim dalam satu tahun $< 3$%. Maka hipotesisnya :
+$$H_0: \pi \geq 0.03$$
+$$H_a: \pi < 0.03$$
+Diskrepansi :
+$$d = \frac{\hat \pi - \pi_0}{\sqrt{\frac{(1-\pi_0)\pi_0}{n}}}$$
+Karena $H_a: \pi < 0.03$, maka _p-value_ = $Pr(D < d)$
+
+Telah diketahui dengan simulasi yang terdiri atas 123 nasabah, nilai _p-value_ $= 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, nasabah yang akan mengajukan satu klaim dalam satu tahun tertentu tidak $< 3$%.
+
+Selanjutnya untuk menghitung selang kepercayaan, kita perlu mencari $\hat \pi$ dengan memanfaatkan diskrepansi yang diperoleh dari _p-value_ = $Pr(D < d) = 0.1$
+
+```{r}
+d <- qnorm(0.1)
+cat("Diskrepansi:", d, "\n")
+```
+Dari diskrepansi, kita bisa dapat $\hat \pi$.
+$$d = \frac{\hat \pi - \pi_0}{\sqrt{\frac{(1-\pi_0)\pi_0}{n}}}$$
+$$\hat \pi = d \cdot \sqrt{\frac{(1-\pi_0)\pi_0}{n}} + \pi_0$$
+$$\hat \pi = -1.281552  \cdot \sqrt{\frac{(1-0.03)0.03}{123}} + 0.03$$
+Sehingga didapat $\hat \pi \approx 0.010288$ atau sekitar $1.03$%.
+
+```{r}
+pi_duga <- 0.010288
+alpha <- 0.05
+z_kritis <- qnorm(1 - alpha / 2)
+n <- 123
+N_total <- 1432000 
+
+se <- sqrt((pi_duga * (1 - pi_duga)) / n)
+SK_bawah <- max(0, pi_duga - z_kritis*se) 
+SK_atas <- pi_duga + z_kritis*se
+
+SK_bawah_total <- N_total*SK_bawah
+SK_atas_total <- N_total*SK_atas
+
+cat("Selang Kepercayaan 95% untuk proporsi nasabah yang mengajukan satu klaim pada tahun tertentu : [", round(SK_bawah, 4), ",", round(SK_atas, 4), "]\n")
+cat("\nEstimasi total nasabah yang mengajukan klaim:", round(N_total*pi_duga), "\n")
+cat("\nSelang Kepercayaan 95% untuk total nasabah yang akan mengajukan satu klaim pada tahun tersebut : [", round(SK_bawah_total), ",", round(SK_atas_total), "]\n")
+```
+Kita $95$% percaya bahwa proporsi sebenarnya dari nasabah yang mengajukan satu klaim pada tahun tertentu berada antara $0$% hingga $2.81$%
+
+Kita juga $95$% percaya bahwa total nasabah yang akan mengajukan satu klaim pada tahun tersebut berada antara 0 dan 40269. 
+
+Estimasi total nasabah yang mengajukan klaim jauh di bawah $3$% dari $1432000 \approx 42960$, konsisten dengan prediksi perusahaan bahwa $< 3$%, meskipun _p-value_ $= 0.1$ tidak memberikan bukti untuk menolak $H_0 : \pi \geq 0.03$.
