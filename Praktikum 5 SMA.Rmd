@@ -1,0 +1,331 @@
+---
+title: "Praktikum 5 SMA"
+author: "Antonius Aditya Rizky Wijaya"
+date: "2025-09-17"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# NOMOR 1
+$$ x_n = (2x_{n-1} + 3)~mod~5 $$
+Dengan $a = 2$, $c = 3$, $m = 5$, dan $n = 1,2,3,...$
+
+```{r}
+PKL <- function(x0, a, c, m, n) {
+  output <- NULL
+  xn <- x0
+  for (i in 1:n) {
+    xn <- (a * xn + c) %% m
+    output <- c(output, xn)
+  }
+  return(output)
+}
+```
+
+## 1a
+Jika $x_0=3$, tentukan nilai 7 suku berikutnya
+```{r}
+deret_a <- PKL(3, 2, 3, 5, 7); deret_a
+```
+
+## 1b
+Prediksi nilai suku ke 100
+```{r}
+suku_ke100 <- PKL(x0=3, a=2, c=3, m=6, n=100)[100]
+cat("Suku ke-100 =", suku_ke100)
+```
+Dapat dilihat dari pola rekursif pada bagian a, bahwa PKL mulai berulang setelah 4 bilangan, sehingga periodenya 4. Artinya suku ke-100 dapat ditentukan melalui pengulangan angka $4,1,0,3$. Karena 100 habis dibagi 4, maka suku ke-100 bernilai $3$. 
+
+## 1c
+Periode pada bagian a.
+
+Periode adalah deret berulang terpendek. Di sini PKL berulang setelah 4 bilangan, sehingga periode = 4. Berikut function untuk menghitung periode dari PKL
+```{r}
+period <- function(x0, a, c, m, n){
+  xn <- PKL(x0, a, c, m, n)
+  
+  for(i in 2:n){
+    if(xn[i] == xn[1]){
+      periode <- i-1
+      break
+    }
+  }
+  return(periode)
+}
+
+period(3, 2, 3, 5, 7)
+```
+
+## 1d
+Periode jika $x_0=5$
+```{r}
+deret_d <- PKL(5, 2, 3, 5, 7); deret_d
+```
+PKL berulang setelah 4 bilangan, sehingga periode = 4.
+```{r}
+period(5, 2, 3, 5, 7)
+```
+
+## 1e
+Periode jika $x_0=2$
+```{r}
+deret_e <- PKL(2, 2, 3, 5, 7); deret_e
+```
+PKL berulang setelah 1 bilangan, sehingga periode = 1.
+```{r}
+period(2, 2, 3, 5, 7)
+```
+
+
+# NOMOR 2
+
+PKL akan menghasilkan periode yang maksimal jika dan hanya jika
+
+> 1. FPB dari $m$ dan $c$ adalah 1
+
+> 2. Faktor-faktor prima dari $m$ membagi $a-1$
+
+> 3. Jika $4$ membagi $m$, maka $4$ harus membagi $a-1$
+
+Dengan ini kita dapat membuat fungsi untuk langsung memeriksa ketiga syarat ini
+
+```{r}
+library(numbers)
+CekMaxPeriod <- function(a, c, m){
+  if(GCD(c, m)!= 1) return(FALSE) #Syarat I
+  for(i in primeFactors(m)){
+    if((a-1) %% i != 0) return(FALSE) #Syarat II
+  }
+  if(m %% 4 == 0 && (a-1) %% 4 != 0) return(FALSE) #Syarat III
+  return(TRUE)
+}
+```
+Fungsi ini akan menghasilkan TRUE apabila periode pada PKL maksimal, sebaliknya akan menghasilkan FALSE apabila periodenya tidak maksimal
+
+## 2a
+$$ x_n = (43 x_{n-1} + 5)~mod~84 $$
+```{r}
+CekMaxPeriod(43, 5, 84)
+```
+Periodenya tidak maksimal untuk setiap seed
+
+## 2b
+$$ x_n = (43 x_{n-1} + 5)~mod~126 $$
+```{r}
+CekMaxPeriod(43, 5, 126)
+```
+Periodenya maksimal untuk setiap seed
+
+
+# NOMOR 3
+$$ x_{n+1} = (x + 5)~mod~13 $$
+
+## 3a
+Menggunakan function pada nomor 2, akan diperiksa apakah PKL tersebut akan menghasilkan
+sebuah periode yang maksimal untuk setiap seed atau tidak
+```{r}
+CekMaxPeriod(1, 5, 13)
+```
+Periodenya maksimal
+
+## 3b
+Dengan rumus PKL tersebut dan dengan rumus:
+$$u_n =\frac{x_n}{m}, ~~~ n =1,2,3,..$$
+serta seed $x_0=17$, bangkitkan lima buah bilangan seragam (0, 1).
+```{r}
+xn <- PKL(17, 1, 5, 13, 5)
+un <- xn/13; un
+```
+
+
+# NOMOR 4
+
+Diberikan data 20 bilangan uniform (0,1) dengan 4 digit desimal, anggap sebagai sebuah bilangan yang memiliki 4 digit angka. Peluang bahwa semua digit itu berbeda adalah $\frac{10}{10} \times \frac{9}{10} \times \frac{8}{10} \times  \frac{7}{10}=50.4\%$
+```{r}
+prob <- (10/10)*(9/10)*(8/10)*(7/10) ; prob
+```
+Artinya dalam sekitar $49.6 \%$ kasus, kita berharap bilangan tersebut setidaknya memiliki dua digit yang sama. 
+
+Dapat dilakukan uji poker dengan hipotesis sebagai berikut:
+$$H_0: Data~menyebar~Mult(20, 0.504, 0.496)$$
+$$H_a: Data~tidak~menyebar~Mult(20, 0.504, 0.496)$$
+
+```{r}
+data <- c("7711", "2379", "1048", "4956", "9874", "0670", "3668", "4097", "6625", "9824", "0862", "5733", "6300", "2305", "9159", "3853", "7372", "9223", "5335", "3311")
+
+digit_beda <- function(x) {
+  bilangan <- unlist(strsplit(x, ""))
+  length(unique(bilangan)) == length(bilangan)
+}
+
+beda <- 0
+sama <- 0
+for(i in data){
+  ifelse(digit_beda(i) == TRUE, beda <- beda + 1, sama <- sama + 1)
+}
+
+tabel <- data.frame(Nilai = c("Digit berbeda", "Digit sama"), Frekuensi = c(beda, sama));tabel
+```
+
+Uji suai khi-kuadrat dengan $\pi_1 = 0.504$ dan $\pi_2 = 0.496$
+```{r} 
+n <- length(data)
+o_i <- tabel$Frekuensi
+pi_i <- c(prob,(1-prob))
+e_i <- pi_i*n
+
+diskrepansi <- sum((o_i-e_i)^2 / e_i)
+pvalue <- 1-pchisq(diskrepansi, df=(length(e_i)-1))
+
+cat("Diskrepansi =", diskrepansi, "\n")
+cat("p-value =", pvalue)
+```
+_p-value_ $= 0.3522 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, kita yakin bahwa datanya acak dan lulus uji poker.
+
+
+# NOMOR 5
+Sebuah pembangkit bilangan acak bernama RANDI menghasilkan 40 koordinat acak yang terbagi dalam 3 bagian.
+
+> A = 18 titik
+
+> B = 11 titik
+
+> C = 11 titik
+
+Uji kedimensionalan untuk menentukan apakah data tersebut acak seragam dalam 2 dimensi atau tidak.
+
+$$H_0:Data~acak~seragam~dalam~2~dimensi$$
+$$H_a:Data~tidak~acak~seragam~dalam~2~dimensi$$
+Proporsi luas: 
+
+> 1. Luas total adalah luas persegi dengan panjang sisi 2, sehingga total luasnya 4
+
+> 2. Luas bagian A adalah $\frac{3}{4}$ luas lingkaran dengan jari-jari 1
+
+> 3. Luas bagian B adalah $\frac{1}{4}$ luas lingkaran dengan jari-jari 1
+
+> 4. Luas bagian C adalah luas persegi dengan panjang sisi 2 dikurangi luas lingkaran dengan jari-jari 1
+
+```{r}
+r <- 1
+luas_total <- 4
+luas_A <- (3/4)*pi*r^2
+luas_B <- (1/4)*pi*r^2
+luas_C <- 4 - pi*r^2
+pi_A <- luas_A/luas_total
+pi_B <- luas_B/luas_total
+pi_C <- luas_C/luas_total
+
+A <- 18
+B <- 11
+C <- 11
+
+n <- A+B+C
+o_i <- c(A,B,C)
+pi_i <- c(pi_A, pi_B, pi_C)
+e_i <- pi_i*n
+
+diskrepansi <- sum((o_i-e_i)^2 / e_i)
+pvalue <- 1-pchisq(diskrepansi, df = length(e_i)-1)
+
+cat("Diskrepansi =", diskrepansi, "\n")
+cat("p-value =", pvalue)
+```
+_p-value_ $=0.1966 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, kita yakin bahwa pembangkit bilangan acak RANDI acak seragam dalam 2 dimensi. 
+
+
+# NOMOR 6
+Pembangkit Kongruen Kuadratik (PKK):
+$$x_{n+1}=(ax_n^2+bx_n+c)~mod~m, ~~~ n=0,1,2,...$$
+
+## 6a
+Buat fungsi R untuk menghasilkan n bilangan pertama dari PKK dengan input $x_0$, $a$, $b$, $c$, $m$, dan $n$.
+
+```{r}
+PKK <- function(x0, a, b, c, m, n) {
+  xn <- x0
+  output <- NULL
+  for (i in 1:n) {
+    xn <- (a*xn^2 + b*xn + c) %% m
+    output <- c(output, xn)
+  }
+  return(output)
+}
+```
+
+## 6b
+Dengan $x_0 = 1$, $a = 422$, $b = 634$, $c = 424$, $m = 211^2$, bangkitkan 200 bilangan pertama.
+
+```{r}
+m <- 211^2
+deret_200 <- PKK(1, 422, 634, 424, m, 200); deret_200
+```
+
+## 6c
+Dari 200 bilangan tersebut, pilih 100 bilangan berurutan (misal ke-1 sampai ke-100, atau ke-12 sampai ke-111, dll.), ubah ke seragam (0,1) dengan $$ u_n = \frac{x_n}{m} $$
+
+```{r}
+un <- deret_200[17:116] / m
+print(head(un, 5))
+```
+
+## 6d
+Lakukan uji kedimensional 2 dimensi pada 100 nilai data yang telah dibangkitkan pada
+bagian (c) untuk cek keacakan seragam.
+
+```{r}
+x <- un[1:99]
+y <- un[2:100]
+titik <- data.frame(x = x, y = y)
+print(head(titik, 4))
+```
+
+```{r}
+par(mar=c(4,4,4,9))
+plot(titik$x, titik$y, xlab = "x", ylab = "y", pch = 19, col = "blue", xlim = c(0,1), ylim = c(0,1))
+grid()
+abline(h = 0.5, v = 0.5, col = "black", lty = 1)
+text(0.95, 0.95, "I", cex = 2, col = "black", family = "serif", font = 2)
+text(0.05, 0.95, "II", cex = 2, col = "black", family = "serif", font = 2)
+text(0.05, 0.05, "III", cex = 2, col = "black", family = "serif", font = 2)
+text(0.95, 0.05, "IV", cex = 2, col = "black", family = "serif", font = 2)
+```
+
+```{r}
+koor1 <- 0
+koor2 <- 0
+koor3 <- 0
+koor4 <- 0
+
+for(i in 1:length(x)){
+  if(x[i] > 0.5 && y[i] > 0.5) koor1 <- koor1 + 1
+  if(x[i] < 0.5 && y[i] > 0.5) koor2 <- koor2 + 1
+  if(x[i] < 0.5 && y[i] < 0.5) koor3 <- koor3 + 1
+  if(x[i] > 0.5 && y[i] < 0.5) koor4 <- koor4 + 1
+}
+
+koor <- data.frame(Koordinat = c("I", "II", "III", "IV"), Frekuensi = c(koor1, koor2, koor3, koor4)) ; koor
+```
+Uji kedimensionalan 2 dimensi untuk 100 data
+
+$$H_0:Data~acak~dalam~2~dimensi$$
+$$H_a:Data~tidak~acak~dalam~2~dimensi$$
+Dengan $n = 99$ dan $\pi_1 = \pi_2 = \pi_3 = \pi_4=\frac{1}{4}$
+```{r} 
+n <- length(x)
+o_i <- koor$Frekuensi
+pi_i <- c(1/4,1/4,1/4,1/4)
+e_i <- pi_i*n
+
+diskrepansi <- sum((o_i-e_i)^2 / e_i)
+pvalue <- 1-pchisq(diskrepansi, df = length(e_i)-1)
+
+cat("Diskrepansi=", diskrepansi, "\n")
+cat("p-value =", pvalue)
+```
+_p-value_ $=0.9156 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, kita yakin bahwa 100 data acak dalam 2 dimensi. 
+
+
