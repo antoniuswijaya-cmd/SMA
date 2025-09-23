@@ -1,0 +1,661 @@
+---
+title: "Praktikum 6 SMA"
+author: "Antonius Aditya Rizky Wijaya"
+date: "2025-09-24"
+output: word_document
+---
+
+# NOMOR 1
+Tuliskan sebuah algoritme yang efisien untuk membangkitkan sebuah bilangan acak dari sebaran dengan fungsi sebaran kumulatif berikut. Implementasikan algoritme tersebut dengan membuat suatu program di R untuk membangkitkan n buah bilangan acak.
+
+## 1a
+$$F(x) = \frac{(x-1)^3 ln~x}{ln~2}, ~~ 1\leq x \leq2$$
+Dapat dibuat menjadi kasus khusus maksimum dengan rumus umum
+$$F_{(n)}(x) = \prod_{i=1}^{n} F_i(x)$$
+Fungsi sebaran di atas dapat kita pecah sebagai berikut:
+$$F_1(x) = {(x-1)^3}, ~~~ F_2(x) = \frac{ln~x}{ln~2}$$
+Dengan ini dapat dibentuk algoritma:
+
+> 1. Bangkitkan $u$ dengan sebaran unif(0,1)
+
+> 2. Tetapkan $x_1 = F_1^{(-1)} (u)$
+
+> 3. Tetapkan $x_2 = F_2^{(-1)} (u)$
+
+> 4. Hasilkan $x = max(x_1,~ x_2)$
+
+Didapat inverse sebarannya:
+$$F_1^{(-1)} (u) = \sqrt[3]{u} + 1, ~~~ F_2^{(-1)} (u) = 2^u$$
+
+```{r}
+algoritme_1a <- function(n){
+  u <- runif(n)
+  x1 <- (u^(1/3)) + 1
+  x2 <- 2^u
+  x <- pmax(x1, x2)
+  return(x)
+}
+
+set.seed(123)
+sim_1a <- algoritme_1a(1000)
+x <- c(1000:2000)/1000
+y <- ((3*(x-1)^2 * log(x)) + (((x-1)^3)/x)) / log(2)
+
+hist(sim_1a, breaks = 20, prob = TRUE, col = "grey", main = "1a", xlab = "x", ylab = "FKP")
+lines(x, y, col = "blue", lwd  = 2)
+```
+
+## 1b 
+$$F(x) = \frac{2}{5} (1 - e^{-5x}) + \frac{6x}{5 + 10x}, ~~~ x>0$$
+Dapat ditulis menjadi
+$$F(x) = \frac{2}{5} (1 - e^{-5x}) + \frac{3}{5}\frac{10x}{5 + 10x}$$
+Menggunakan kasus khusus komposisi dengan $\alpha_1 = \frac{2}{5}$ dan $\alpha_2 = \frac{3}{5}$. Serta $F_1(x) = (1-e^{-5x})$ dan $F_2(x) = \frac{10x}{5+10x}$. Selanjutnya dapat dibentuk algoritma:
+
+> 1. Bangkitkan $u$ dengan sebaran unif(0,1)
+
+> 2. _If_ $u < \frac{2}{5}$, _then_ hasilkan $x = F_1^{(-1)} (u)$
+
+> 3. _else_, hasilkan $x = F_2^{(-1)} (u)$
+
+Dengan
+$$F_1^{(-1)} (u) = -\frac{ln~(1-u)}{5}, ~~~ F_2^{(-1)} (u) = \frac{u}{2-2u}$$
+```{r}
+algoritme_1b <- function(n){
+  u <- runif(n)
+  x <- NULL
+  for(i in 1:n){
+    if(u[i] < 2/5){
+      xi <- - log(1-u[i]) / 5
+    }
+    else{
+      xi <- u[i]/(2 - 2*u[i])
+    }
+    x <- c(x, xi)
+  }
+  return(x)
+}
+
+set.seed(123)
+sim_1b <- algoritme_1b(1000)
+x <- c(0:1100*max(sim_1b))/1000
+y <- 2*exp(-5*x) + 2/((1+2*x)^2)
+
+hist(sim_1b, breaks = 20, prob = TRUE, col = "grey", main = "1b", xlab = "x", ylab = "FKP")
+lines(x, y, col = "blue", lwd  = 2)
+```
+
+## 1c
+$$F(x) = \frac{x^2}{1+x^2} - \frac{x^2 e^{-\lambda x}}{1+x^2}, ~~~ x>0$$
+Dapat ditulis menjadi
+$$F(x) = \frac{x^2 (1 - e^{-\lambda x})}{1+x^2}, ~~~ x>0$$
+Sama seperti pada bagian a, bisa gunakan kasus khusus maksimum dengan $F_1(x) = \frac{x^2}{1+x^2}$ dan $F_2(x) = 1-e^{-\lambda x}$. Dengan ini algoritmenya adalah
+
+> 1. Bangkitkan $u$ dengan sebaran unif(0,1)
+
+> 2. Tetapkan $x_1 = F_1^{(-1)} (u)$
+
+> 3. Tetapkan $x_2 = F_2^{(-1)} (u)$
+
+> 4. Hasilkan $x = max(x_1,~ x_2)$
+
+Dengan
+$$F_1^{(-1)} (u) = \sqrt{\frac{u}{1-u}}, ~~~ F_2^{(-1)} (u) =- \frac{ln~(1-u)}{\lambda}$$
+Tentunya kita dapat menentukan nilai dari $\lambda$ itu sendiri.
+
+```{r}
+algoritme_1c <- function(n, lambda){
+  u <- runif(n)
+  x1 <- sqrt(u/(1-u))
+  x2 <- -log(1-u)/lambda
+  x <- pmax(x1, x2)
+  return(x)
+}
+
+set.seed(123)
+sim_1c <- algoritme_1c(1000, 1)
+x <- c(0:1100*max(sim_1c)) / 1000
+uv <- (x^2) * (1 - exp(-x))
+uv_aks <- 2*x*(1 - exp(-x)) + ((x^3)*exp(-x))
+w <- 1+x^2
+y <- (uv_aks*w - uv*2*x) / (w^2)
+
+hist(sim_1c, breaks = 20, prob = TRUE, col = "grey", main = "1c", xlab = "x", ylab = "FKP", ylim = c(0,0.5))
+lines(x, y, col = "blue", lwd = 2)
+```
+
+## 1d
+$$F(x) = \frac{2x^2}{\pi~ln~(2)}~ln~(x+1)~arcsin(x), ~~~ 0 \leq x \leq 1$$
+Dapat ditulis menjadi 
+$$F(x) = x^2~\frac{ln~(x+1)}{ln~(2)}~\frac{2~arcsin~(x)}{\pi}, ~~~ 0\leq x \leq1$$
+Dan dengan kasus khusus maksimum, didapatkan $F_1(x) = x^2$, $F_2(x) = \frac{ln~(x+1)}{ln~(2)}$, dan $F_3(x) = \frac{2~arcsin~(x)}{\pi}$
+
+Perhatikan bahwa penentuan nilai $F_i(x)$ tidak boleh sembarangan. Karena ini adalah fungsi sebaran, maka untuk semua daerah asalnya haruslah memiliki nilai di antara 0 dan 1.
+
+Setelah ditetapkan, maka algoritmanya adalah
+
+> 1. Bangkitkan $u$ dengan sebaran unif(0,1)
+
+> 2. Tetapkan $x_1 = F_1^{(-1)} (u)$
+
+> 3. Tetapkan $x_2 = F_2^{(-1)} (u)$
+
+> 4. Tetapkan $x_3 = F_3^{(-1)} (u)$
+
+> 5. Hasilkan $x = max(x_1,~ x_2, ~ x_3)$
+
+Dengan
+$$F_1^{(-1)} (u) = \sqrt{u}, ~~~ F_2^{(-1)} (u) =2^u - 1, ~~~ F_3^{-1} (u)= sin~(\frac{u\pi}{2})$$
+```{r}
+algoritme_1d <- function(n){
+  u <- runif(n)
+  x1 <- sqrt(u)
+  x2 <- 2^u - 1
+  x3 <- sin((pi*u)/2)
+  x <- pmax(x1, x2, x3)
+  return(x)
+}
+
+set.seed(123)
+sim_1d <- algoritme_1d(1000)
+x <- c(0:1000)/1000
+u <- 4*x*log(x+1)*asin(x)
+v <- (2*(x^2)*asin(x))/(x+1)
+w <- (2*(x^2)*log(x+1)) / sqrt(1-x^2)
+y <- (u+v+w) / (pi*log(2))
+
+hist(sim_1d, breaks = 20, prob = TRUE, col = "grey", main = "1d", xlab = "x", ylab = "FKP")
+lines(x, y, col = "blue", lwd = 2)
+```
+
+## 1e
+$$F(x) = 1 - \frac{e^{-x}}{x+1}, ~~~ x>0$$
+Dapat menggunakan kasus khusus minimum dengan rumus umum
+$$F_{(1)}(x) = 1 - \prod_{i=1}^n (1 - F_i(x))$$
+Dapat ditentukan bahwa $F_1(x) = 1 - e^{-x}$ dan $F_2(x) = 1 - \frac{1}{x+1}$. Dengan ini algoritmanya adalah 
+
+> 1. Bangkitkan $u$ dengan sebaran unif(0,1)
+
+> 2. Tetapkan $x_1 = F_1^{(-1)} (u)$
+
+> 3. Tetapkan $x_2 = F_2^{(-1)} (u)$
+
+> 4. Hasilkan $x = min(x_1,~ x_2)$
+
+Dengan
+$$F_1^{(-1)} (u) = - ln~(1-u), ~~~ F_2^{(-1)} (u) = \frac{1}{1-u} -1$$
+```{r}
+algoritme_1e <- function(n){
+  u <- runif(n)
+  x1 <- -log(1-u)
+  x2 <- (1/(1-u)) - 1
+  x <- pmin(x1, x2)
+  return(x)
+}
+
+set.seed(123)
+sim_1e <- algoritme_1e(1000)
+x <- c(0:6000)/1000
+y <- ((x+2)*exp(-x)) / ((x+1)^2)
+
+hist(sim_1e, breaks = 20, prob = TRUE, col = "grey", main = "1e", xlab = "x", ylab = "FKP")
+lines(x, y, col = "blue", lwd = 2)
+```
+
+## 1f
+$$F(x) = 1- exp(-\frac{x}{2} - \frac{x^2}{2}), ~~~ x>0$$
+Dapat ditulis menjadi
+$$F(x) = 1 - exp(-\frac{x}{2})exp(-\frac{x^2}{2})$$
+Sama seperti pada poin e, menggunakan kasus khusus minimum dengan $F_1(x) =  1 - exp(-\frac{x}{2})$ dan $F_2(x) =  1 - exp(-\frac{x^2}{2})$. Maka algoritmanya adalah
+
+> 1. Bangkitkan $u$ dengan sebaran unif(0,1)
+
+> 2. Tetapkan $x_1 = F_1^{(-1)} (u)$
+
+> 3. Tetapkan $x_2 = F_2^{(-1)} (u)$
+
+> 4. Hasilkan $x = min(x_1,~ x_2)$
+
+Dengan
+$$F_1^{(-1)} (u) = -2~ln~(1-u), ~~~ F_2^{(-1)} (u) = \sqrt{-2~ln~(1-u)}$$
+```{r}
+algoritme_1f <- function(n){
+  u <- runif(n)
+  x1 <- -2*log(1-u)
+  x2 <- sqrt(-2*log(1-u))
+  x <- pmin(x1, x2)
+  return(x)
+}
+set.seed(123)
+sim_1f <- algoritme_1f(1000)
+x <- c(0:6000)/1000
+y <- (1/2 + x) * exp(-(x/2) - ((x^2)/2))
+
+hist(sim_1f, breaks = 20, prob = TRUE, col = "grey", main = "1f", xlab = "x", ylab = "FKP", ylim = c(0,0.8))
+lines(x, y, col = "blue", lwd = 2)
+```
+
+## 1g
+$$F(x) =$$
+
+
+# NOMOR 2
+Tuliskan sebuah algoritme yang efisien untuk membangkitkan sebuah bilangan acak dari sebaran dengan fungsi kepekatan peluang berikut. Implementasikan algoritme tersebut dengan membuat suatu program di R untuk membangkitkan n buah bilangan acak.
+
+# 2a
+Diberikan FKP:
+$$ f(x) = 3x^2 - 6x + 3 , ~~~  0 < x < 1 $$
+Bisa diperoleh FSK:
+$$F(x) = \int_0^x f(t) \, dt = \int_0^x 3x^2 - 6x + 3 \, dt $$
+$$F(x) = x^3 - 3x^2 + 3x, ~~~  0 < x < 1$$
+$$F(x) = 1-(1-x)^3$$
+Samakan dengan u ~ Uniform(0,1):
+$$u = 1 - (1-x)^3$$
+$$x = 1 - (1-u)^{1/3}$$
+
+```{r}
+algoritma_2a <- function(n) {
+  u <- runif(n)
+  x <- 1 - (1 - u)^{1/3}
+  return(x)
+}
+
+set.seed(123)
+sim_2a <- algoritma_2a(1000)
+hist(sim_2a, breaks=20, main="2a", xlab="x", ylab="FKP", prob=TRUE, col="red", xlim = c(0,1))
+
+fkp_2a <- function(x) {
+  3*x^2 - 6*x + 3
+}
+sumbux_2a <- seq(0,1,length=1000)
+lines(sumbux_2a, fkp_2a(sumbux_2a), col="black", lwd=3)
+legend("topright", legend=c("Histogram Simulasi", "FKP Teoritis"), col=c("red", "black"), lwd=c(10,3))
+```
+
+# 2b
+Diberikan FKP:
+$$f(x) = 
+\begin{cases} 
+4x, & 0 < x < \frac{1}{2}, \\
+4 - 4x, & \frac{1}{2} < x < 1 
+\end{cases}$$
+Bisa diperoleh FSK:
+
+> Untuk $ 0 < x < \frac{1}{2} $:
+
+$$F(x) = \int_0^x 4t \, dt = 2x^2$$
+
+> Untuk $ \frac{1}{2} < x < 1 $:
+
+$$F(x) = \int_0^{1/2} 4t \, dt + \int_{1/2}^x (4 - 4t) \, dt = 4x - 2x^2 -1 = 1-2(1-x)^2$$
+Sehingga:
+$$F(x) = 
+\begin{cases} 
+2x^2, & 0 < x < \frac{1}{2}, \\
+1-2(1-x)^2, & \frac{1}{2} < x < 1 
+\end{cases}$$
+Samakan dengan u ~ Uniform(0,1):
+
+> Untuk $ 0 < x < \frac{1}{2} $:
+
+$$u = 2x^2$$
+$$x = \sqrt{\frac{u}{2}}$$
+
+> Untuk $ \frac{1}{2} < x < 1 $:
+
+$$u = 1 - 2(1-x)^2$$
+$$x = 1 - \sqrt{\frac{1-u}{2}}$$
+
+```{r}
+algoritma_2b <- function(n) {
+  u <- runif(n)
+  x <- ifelse(u <= 0.5, sqrt(u / 2), 1 - sqrt((1 - u) / 2))
+  return(x)
+}
+
+set.seed(123)
+sim_2b <- algoritma_2b(1000)
+hist(sim_2b, breaks=20, main="2b", xlab="x", ylab="FKP", prob=TRUE, col="green", xlim=c(0,1))
+
+fkp_2b <- function(x) {
+  ifelse(x < 0.5, 4*x, 4 - 4*x)
+}
+sumbux_2b <- seq(0,1,length=1000)
+lines(sumbux_2b, fkp_2b(sumbux_2b), col="black", lwd=3)
+legend("topright", legend=c("Histogram Simulasi", "FKP Teoritis"), col=c("green", "black"), lwd=c(10,3))
+```
+
+# 2c
+Diberikan FKP:
+$$f(x) = \frac{1}{12} (12x^3 + 9x^2 + 8x + 2), \quad 0 < x < 1$$
+Bisa diperoleh FSK:
+$$F(x) = \int_0^x \frac{1}{12} (12t^3 + 9t^2 + 8t + 2) \, dt = \frac{1}{12} \left[ 3t^4 + 3t^3 + 4t^2 + 2t \right]_0^x$$
+$$F(x) = \frac{3x^4 + 3x^3 + 4x^2 + 2x}{12}$$
+$$F(x) = \frac{1}{4}x^4 + \frac{1}{4}x^3 + \frac{1}{3}x^2 + \frac{1}{6}x, ~~~ 0 < x < 1$$
+```{r}
+algoritma_2c <- function(n) {
+  u <- runif(n)
+  v <- runif(n)
+  x <- numeric(n)
+  
+  for (i in 1:n) {
+    if (u[i] < 1/4) {
+      x[i] <- v[i]^(1/4)
+    } else if (u[i] < 1/2) {
+      x[i] <- v[i]^(1/3)
+    } else if (u[i] < 5/6) {
+      x[i] <- v[i]^(1/2)
+    } else {
+      x[i] <- v[i]
+    }
+  }
+  return(x)
+}
+
+set.seed(123)
+sim_2c <- algoritma_2c(1000)
+hist(sim_2c, breaks=20, main="2c", xlab="x", ylab="FKP", prob=TRUE, col="blue", xlim=c(0,1))
+
+fkp_2c <- function(x) {
+  (1/12)*(12*x^3 + 9*x^2 + 8*x + 2)
+}
+sumbux_2c <- seq(0,1,length=1000)
+lines(sumbux_2c, fkp_2c(sumbux_2c), col="black", lwd=3)
+legend("topleft", legend=c("Histogram Simulasi", "FKP Teoritis"), col=c("blue", "black"), lwd=c(10,3))
+```
+
+Adapun cara alternatif:
+$$F(x) = \frac{3x^4 + 3x^3 + 4x^2 + 2x}{12}, ~~~ 0 < x < 1$$
+Samakan dengan u ~ Uniform(0,1):
+$$u = \frac{3x^4 + 3x^3 + 4x^2 + 2x}{12}$$
+Namun akan sulit untuk mendapatkan invers eksplisit yang sederhana secara analitik. Alternatifnya gunakan metode numerik (uniroot di R) untuk menyelesaikan persamaan:
+$$\frac{3x^4 + 3x^3 + 4x^2 + 2x}{12} - u = 0$$
+
+```{r}
+algoritma_2c_alt <- function(n) {
+  u <- runif(n)
+  x <- numeric(length(u))
+  for (i in 1:length(u)) {
+    x[i] <- uniroot(function(x) (3*x^4 + 3*x^3 + 4*x^2 + 2*x)/12 - u[i],
+                    interval=c(0,1))$root
+  }
+  return(x)
+}
+
+set.seed(123)
+sim_2c_alt <- algoritma_2c_alt(1000)
+hist(sim_2c_alt, breaks=20, main="2c Alternatif", xlab="x", ylab="FKP", prob=TRUE, col="blue", xlim=c(0,1))
+
+fkp_2c <- function(x) {
+  (1/12)*(12*x^3 + 9*x^2 + 8*x + 2)
+}
+sumbux_2c <- seq(0,1,length=1000)
+lines(sumbux_2c, fkp_2c(sumbux_2c), col="black", lwd=3)
+legend("topleft", legend=c("Histogram Simulasi", "FKP Teoritis"), col=c("blue", "black"), lwd=c(10,3))
+```
+
+
+# NOMOR 3
+Tuliskan sebuah algoritme yang efisien untuk membangkitkan sebuah bilangan acak dari sebaran dengan fungsi massa peluang berikut. Implementasikan algoritme tersebut dengan membuat suatu program di R untuk membangkitkan n buah bilangan acak.
+
+# 3a
+Diberikan FMP:
+$$ P(X=x) =
+\begin{cases}
+\frac{3}{20}, & x = 0,2,4,6,8 \\
+\frac{1}{20}, & x = 1,3,5,7,9
+\end{cases} $$
+
+Bisa diperoleh FSK:
+$$F(x) =
+\begin{cases}
+0, & x < 0 \\
+0.15, & 0 \leq x < 1 \\
+0.20, & 1 \leq x < 2 \\
+0.35, & 2 \leq x < 3 \\
+0.40, & 3 \leq x < 4 \\
+0.55, & 4 \leq x < 5 \\
+0.60, & 5 \leq x < 6 \\
+0.75, & 6 \leq x < 7 \\
+0.80, & 7 \leq x < 8 \\
+0.95, & 8 \leq x < 9 \\
+1, & x \geq 9
+\end{cases} $$
+
+```{r}
+nilai_3a <- 0:9
+prob_3a  <- ifelse(nilai_3a %% 2 == 0, 3/20, 1/20)
+FSK_3a <- cumsum(prob_3a)
+tabel_3a <- data.frame(x = nilai_3a, FMP = prob_3a, FSK = FSK_3a)
+print(tabel_3a)
+```
+
+```{r}
+algoritma_3a <- function(n) {
+  u <- runif(n)
+  x <- numeric(n)
+  for (i in 1:n) {
+    if (u[i] < 0.15)      x[i] <- 0
+    else if (u[i] < 0.20) x[i] <- 1
+    else if (u[i] < 0.35) x[i] <- 2
+    else if (u[i] < 0.40) x[i] <- 3
+    else if (u[i] < 0.55) x[i] <- 4
+    else if (u[i] < 0.60) x[i] <- 5
+    else if (u[i] < 0.75) x[i] <- 6
+    else if (u[i] < 0.80) x[i] <- 7
+    else if (u[i] < 0.95) x[i] <- 8
+    else                  x[i] <- 9
+  }
+  return(x)
+}
+
+set.seed(123)
+sim_3a <- algoritma_3a(1000)
+barplot(table(sim_3a)/length(sim_3a), col="orange",main="3a", xlab="x", ylab="FMP")
+```
+
+# 3b
+Diberikan FMP:
+$$ P(X=x) =
+\begin{cases}
+0.05, & x = -1,0 \\
+0.10, & x = 2,5,8 \\
+0.15, & x = 1,4,9,16
+\end{cases} $$
+Bisa diperoleh FSK:
+$$F(x) =
+\begin{cases}
+0, & x < -1 \\
+0.05, & -1 \leq x < 0 \\
+0.10, & 0 \leq x < 1 \\
+0.25, & 1 \leq x < 2 \\
+0.35, & 2 \leq x < 4 \\
+0.50, & 4 \leq x < 5 \\
+0.60, & 5 \leq x < 8 \\
+0.70, & 8 \leq x < 9 \\
+0.85, & 9 \leq x < 16 \\
+1, & x \geq 16
+\end{cases} $$
+
+```{r}
+nilai_3b <- c(-1,0,1,2,4,5,8,9,16)
+prob_3b  <- c(0.05,0.05,0.15,0.10,0.15,0.10,0.10,0.15,0.15)
+FSK_3b <- cumsum(prob_3b)
+tabel_3b <- data.frame(x = nilai_3b, FMP = prob_3b, FSK = FSK_3b)
+print(tabel_3b)
+```
+
+```{r}
+algoritma_3b <- function(n) {
+  u <- runif(n)
+  x <- numeric(n)
+  for (i in 1:n) {
+    if (u[i] < 0.05)      x[i] <- -1
+    else if (u[i] < 0.10) x[i] <- 0
+    else if (u[i] < 0.25) x[i] <- 1
+    else if (u[i] < 0.35) x[i] <- 2
+    else if (u[i] < 0.50) x[i] <- 4
+    else if (u[i] < 0.60) x[i] <- 5
+    else if (u[i] < 0.70) x[i] <- 8
+    else if (u[i] < 0.85) x[i] <- 9
+    else                  x[i] <- 16
+  }
+  return(x)
+}
+
+set.seed(123)
+sim_3b <- algoritma_3b(1000)
+barplot(table(sim_3b)/length(sim_3b), col="purple",main="3b", xlab="x", ylab="FMP")
+```
+
+
+# NOMOR 4
+$X$ menyebar pareto dan memiliki fungsi kepekatan peluang sebagai berikut
+$$f_X (x) = \frac{2(10000)^2}{(x+10000)^3}, ~~~ x>0$$
+
+## 4a
+Untuk membangkitkan sebuah bilangan acak dari $f(x)$ dibentuk algoritma sebagai
+
+> 1. Bangkitkan $u$ dari sebaran unif(0,1)
+
+> 2. Tetapkan $x = F^{-1}(u)$
+
+Dengan ini kita perlu menentukan fungsi sebaran dari FKP pareto lalu kita cari inverse dari fungsi sebaran tersebut. Untuk sebaran pareto, fungsi sebarannya yakni 
+$$F_X(x) = \int_0^x f_X(s) ds =\int_0^x \frac{2(10000)^2}{(x+10000)^3} ds = 1-\frac{10000^2}{(x+10000)^2} $$
+Selanjutnya dapat ditentukan fungsi inversnya
+$$u = 1-\frac{10000^2}{(x+10000)^2}$$
+$$x = \frac{10000}{\sqrt{1-u}} - 10000$$
+
+## 4b
+```{r}
+algoritma_4b <- function(n){
+  u <- runif(n)
+  x <- (10000/sqrt(1-u)) - 10000
+  return(x)
+}
+```
+
+## 4c
+```{r}
+set.seed(123)
+sim_4c <- algoritma_4b(1000)
+x <- c(0:1000*max(sim_4c))/1000
+y <- (2*(10000^2)) / ((x+10000)^3)
+
+hist(sim_4c, breaks = 50, prob = TRUE, col = "grey", main = "4c", xlab = "x", ylab = "FKP", xlim = c(0,1.1*max(sim_4c)))
+lines(x, y, col = "blue", lwd = 2)
+```
+
+
+# NOMOR 5
+Diberikan distribusi pareto dengan parameter $\alpha ~ (shape)> 0$ dan $\beta ~ (scale)> 0$, dengan:
+
+Fungsi kepekatan peluang (FKP):
+$$ f(x) = \frac{\alpha \beta^\alpha}{x^{\alpha+1}}, ~~~ x \geq \beta $$
+
+Fungsi sebaran kumulatif (FSK):
+$$ F(x) = 1 - \left( \frac{\beta}{x} \right)^\alpha, ~~~ x \geq \beta $$
+# 5a
+```{r}
+#install.packages("insuranceData")
+#data(package = "insuranceData")
+library(insuranceData)
+data("AutoClaims")
+data_PAID <- AutoClaims$PAID
+hist(data_PAID, breaks=50, main="Histogram Data Klaim PAID", xlab="Klaim ($)", ylab="Frekuensi")
+```
+
+# 5b
+Estimator MLE: 
+$$\hat{\beta} = \min\{x_1, x_2, ..., x_n\}$$
+
+$$\hat{\alpha} = \frac{n}{\sum_{i=1}^n \ln(\frac{x_i}{\hat\beta})}$$
+
+```{r}
+n <- length(data_PAID);n
+beta_hat <- min(data_PAID)
+alpha_hat <- n / sum(log(data_PAID / beta_hat))
+cat("Estimator MLE: \n")
+cat("Beta (scale) =", beta_hat, "\n")
+cat("Alpha (shape) =", alpha_hat, "\n")
+```
+
+```{r}
+f_pareto <- function(x, alpha, beta) {
+  ifelse(x >= beta, (alpha * beta^alpha) / (x^(alpha + 1)), 0)
+}
+
+hist(data_PAID, breaks=50, probability=TRUE, main="Histogram Data Klaim PAID dengan FKP Pareto", xlab="Klaim ($)", ylab="Density")
+
+x <- seq(beta_hat, max(data_PAID), length.out=100)
+f_x <- f_pareto(x, alpha_hat, beta_hat)
+lines(x, f_x, col="blue", lwd=2)
+```
+# 5c
+Dengan memanfaatkan teorema transformasi invers, buat suatu program untuk membangkitkan n bilangan acak dari sebaran Pareto dengan parameter-parameter yang telah diduga nilainya pada bagian (b).
+
+samakan FSK dengan U ~ Uniform(0,1):
+$$ u = 1 - \left( \frac{\beta}{x} \right)^\alpha $$
+$$ \left( \frac{\beta}{x} \right)^\alpha = 1 - u $$
+$$ \frac{\beta}{x} = (1-u)^{1/\alpha} $$
+Sehingga:
+$$ x = \frac{\beta}{(1-u)^{1/\alpha}} $$
+
+```{r}
+rpareto <- function(n, alpha, beta) {
+  u <- runif(n)
+  x <- beta / (1 - u)^(1 / alpha)
+  return(x)
+}
+
+set.seed(123)
+sim_5c <- rpareto(1000, alpha_hat, beta_hat)
+```
+
+# 5d
+Lakukan uji Kolmogorov-Smirnov untuk memeriksa apakah data pada bagian (a) mengikuti sebaran Pareto dengan parameter-parameter yang telah diduga nilainya pada bagian (b). Pada saat menghitung p-value dengan simulasi, gunakan program yang telah dibuat pada bagian (c) untuk membangkitkan data yang berasal dari sebaran Pareto.
+
+Hipotesis:
+$$H_0: Data~mengikuti~sebaran~Pareto~dengan~parameter~\hat\alpha~dan~\hat\beta$$
+$$H_a: Data~tidak~mengikuti~sebaran~Pareto~dengan~parameter~\hat\alpha~dan~\hat\beta$$
+
+```{r}
+ppareto <- function(x, alpha, beta) {
+  ifelse(x >= beta, 1 - (beta / x)^alpha, 0)
+}
+
+data_sort <- sort(data_PAID)
+F <- ppareto(data_sort, alpha_hat, beta_hat)
+Fu <- (1:n)/n
+Fl <- Fu - 1/n
+d <- max(abs(F - Fu), abs(F - Fl))
+cat("Jarak K-S:", d, "\n")
+```
+
+```{r warning=FALSE}
+KS <- function(KSd, n, size){
+  KS <- NULL
+  upper <- c(1:size)/size
+  lower <- upper - 1/size
+  for (i in 1:n){
+    new_data <- sort(sim_5c)
+    beta_star <- min(new_data)
+    alpha_star <- n / sum(log(new_data / beta_star))
+    U <- abs(upper - ppareto(new_data, alpha_star, beta_star))
+    L <- abs(lower - ppareto(new_data, alpha_star, beta_star))
+    d_star <- max(U, L)
+    KS <- c(KS, d_star)
+  }
+  p_value = length(KS[KS > KSd])/n
+  return(p_value)
+}
+
+set.seed(123)
+KS(d, 1000, length(data_PAID))
+```
+_p-value_ $= 1 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya data mengikuti sebaran Pareto dengan parameter $\hat\alpha$ dan $\hat\beta$.
+
+```{r warning=FALSE}
+ks_test <- ks.test(data_PAID, function(x) ppareto(x, alpha_hat, beta_hat), alternative = "two.sided", simulate.p.value = TRUE)
+print(ks_test)
+```
+Fungsi `ks.test()` di R boleh dipakai kalau FSK teoritis sudah lengkap (parameter diketahui, bukan diestimasi dari data). Kalau kita mengestimasi parameter seperti $\hat{\alpha}$ dan $\hat{\beta}$ dari data, distribusi statistik KS berubah sehingga p-value dari `ks.test()` tidak valid.
