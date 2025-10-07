@@ -1,0 +1,192 @@
+---
+title: "Praktikum 7 SMA"
+author: "Antonius Aditya Rizky Wijaya"
+date: "2025-10-01"
+output: word_document
+---
+
+# NOMOR  1
+Fungsi Gamma didefinisikan sebagai integral tak hingga:
+$$\Gamma(\alpha) = \int_0^\infty x^{\alpha-1} e^{-x} \, dx$$
+Estimasi nilai $\theta = \Gamma\left(\frac{1}{2}\right) = \sqrt{\pi}$ menggunakan metode Crude Monte Carlo (CMC)
+
+## 1a
+
+Dengan menggunakan `set.seed(11)`, hitung ukuran contoh yang harus digunakan agar nilai dugaannya cukup akurat, yakni error-nya tidak lebih dari 0.001 satuan, pada tingkat kepercayaan 95%.
+
+$$\theta = \Gamma\left(\frac{1}{2}\right) = \int_0^\infty x^{-1/2} e^{-x} \, dx = \int_0^\infty \frac{1}{\sqrt{x}} e^{-x} \, dx.$$
+
+Karena batas integral adalah $[0, \infty)$, kita gunakan transformasi: 
+$u \sim \text{Uniform}(0,1)$, $x = \frac{u}{1-u}$ dan $dx = \frac{du}{(1-u)^2}$
+
+Sehingga bentuk integralnya menjadi:
+$$\theta = \int_0^1 \left(\frac{u}{1-u}\right)^{-1/2} e^{-u/(1-u)} \cdot \frac{du}{(1-u)^2}$$
+dengan
+$$\theta = \int_0^1 (1-u)^{-3/2} \cdot u^{-1/2} \cdot e^{-u/(1-u)} \, du$$
+
+```{r}
+theta <- sqrt(pi)
+
+set.seed(11)
+u <- runif(1000)
+h <- (1 - u)^(-1.5) * u^(-0.5) * exp(-u / (1 - u))
+var_h <- var(h)
+c <- 1.96
+E <- 0.001
+n <- ceiling((c^2*var_h)/E^2)
+cat("Ukuran contoh :", n, "\n")
+```
+Dengan contoh sebanyak 19,374,818 kita mungkin percaya bahwa error-nya tidak lebih dari 0.001 satuan.
+
+## 1b
+
+Dengan membulatkan ukuran contoh/sampel yang telah dihitung tersebut ke bilangan bulat terdekat di atasnya, hitung nilai dugaan bagi dengan menggunakan `set.seed(12)`. Hitung juga error-nya.
+Nilai error dapat dihitung dengan
+$$\text{error} = |\hat{\theta} - \theta|$$
+```{r}
+set.seed(12)
+x <- runif(n)
+g <- (1 - x)^(-1.5) * x^(-0.5) * exp(-x / (1 - x))
+theta_duga <- mean(g)
+error <- abs(theta_duga - theta)
+
+cat("Theta =", theta, "\n")
+cat("Theta duga =", theta_duga, "\n")
+cat("Error =", error)
+```
+Dengan ukuran contoh sebanyak 19,374,818 dan `set.seed(12)`, didapat dugaan theta yang cukup akurat hingga 3 angka dibelakang koma atau error-nya $<0.001$ satuan sebagaimana diminta disoal.
+
+
+# NOMOR 2
+
+Diberikan
+$$\theta = \int_0^1 \frac{1}{\sqrt{2\pi}} \exp\left(-\frac{x^2}{2}\right) \, dx$$
+
+## 2a
+
+Misalkan kita ingin menduga nilai $\theta$ dengan pengintegralan Crude Monte Carlo (CMC). Dengan menggunakan `set.seed(21)`, hitung ukuran contoh/sampel yang harus digunakan agar nilai dugaannya cukup akurat, yakni error-nya tidak lebih dari 0.001 satuan, pada tingkat kepercayaan 95%.
+
+```{r}
+set.seed(21)
+u <- runif(1000)
+h <- (1 / sqrt(2 * pi)) * exp(-u^2 / 2)
+var_h <- var(h)
+c <- 1.96
+E <- 0.001
+n <- ceiling((c^2*var_h)/E^2)
+cat("Ukuran contoh:", n, "\n")
+```
+Dengan contoh sebanyak 9032 kita mungkin percaya bahwa error-nya tidak lebih dari 0.001 satuan.
+
+## 2b
+
+Dengan membulatkan ukuran contoh/sampel yang telah dihitung tersebut ke bilangan bulat genap terdekat di atasnya, hitung nilai dugaan bagi $\theta$ dengan menggunakan `set.seed(22)` beserta ragam penduganya. Hitung juga error-nya dengan mengasumsikan bahwa nilai $\theta$ yang sebenarnya adalah $pnorm(1)-pnorm(0)$.
+
+```{r}
+set.seed(22)
+x <- runif(n)
+g <- (1 / sqrt(2 * pi)) * exp(-x^2 / 2)
+theta_duga <- mean(g)
+var_duga <- var(g) / n
+
+theta <- pnorm(1) - pnorm(0)
+error <- abs(theta_duga - theta)
+
+cat("Theta =", theta, "\n")
+cat("Theta duga =", theta_duga, "\n")
+cat("Error =", error, "\n")
+cat("Varian duga =", var_duga)
+```
+Dengan ukuran contoh sebanyak 9032  dan `set.seed(22)`, didapat dugaan theta yang cukup akurat hingga 3 angka dibelakang koma dan error-nya $<0.001$ satuan.
+
+## 2c
+Dengan $n$ yang sama dan `set.seed(23)`, gunakan metode antitesis. Gunakan rumus berikut untuk menduga nilai $\theta$
+
+$$\hat{\theta} = \sum_{i=1}^\frac{n}{2}\frac{\exp\left(-\frac{u_i^2}{2}\right) \left[1 + \exp\left(-\frac{1}{2} + u_i\right)\right]}{n \sqrt{2\pi}}$$
+dengan $u_1, u_2, ..., u_{\frac{n}{2}}$ adalah realisasi dari sebaran seragam (0,1). Gunakan `set.seed(23)`. Hitung juga ragam penduganya.
+
+```{r}
+set.seed(23)
+m <- floor(n/2)
+u_anti <- runif(m)
+theta_anti <- sum(exp(-u_anti^2 / 2) * (1 + exp(-0.5 + u_anti))) / (n * sqrt(2 * pi))
+
+g_u <- (1 / sqrt(2 * pi)) * exp(-u_anti^2 / 2)
+g_1u <- (1 / sqrt(2 * pi)) * exp(-(1 - u_anti)^2 / 2)
+pair_avgs <- (g_u + g_1u) / 2
+var_anti <- var(pair_avgs) / m
+
+error_anti <- abs(theta_anti - theta)
+cat("Theta =", theta, "\n")
+cat("Theta antitesis:", theta_anti, "\n")
+cat("Error antitesis:", error_anti, "\n")
+cat("Varian antitesis:", var_anti, "\n")
+```
+Dengan metode antitesis dan `set.seed(23)`, didapat dugaan theta yang lebih baik hingga 4 angka dibelakang koma dan error-nya $<0.001$ satuan.
+
+## 2d
+
+Hitung efisiensi antara bagian (b) dan bagian (c). Berikan interpretasinya.
+
+```{r}
+efisiensi <- var_duga / var_anti
+cat("Efisiensi:", efisiensi)
+```
+Artinya pendugaan dengan metode antitesis 12.53 kali lebih efisien dibandingkan dengan metode CMC.
+
+
+# NOMOR 3
+$X$ mengikuti distribusi lognormal dengan parameter lokasi $\mu = 0$ dan skala $\sigma = 1$, sesuai fkp:
+
+$$f(x) = \frac{1}{x \sqrt{2\pi}} \exp\left(-\frac{(\ln x)^2}{2}\right), \quad x > 0.$$
+
+## 3a
+
+Gunakan pengintegralan Crude Monte Carlo (CMC) dengan 1000 nilai contoh/sampel untuk menduga nilai $\theta = Pr (1 < X < 2)$. Duga juga ragam penduganya. Berikan sebuah hampiran selang kepercayaan 95% bagi $\theta$. Gunakan `set.seed(31)`.
+
+```{r}
+set.seed(31)
+x <- rlnorm(1000, meanlog = 0, sdlog = 1)
+I <- ifelse(x > 1 & x < 2, 1, 0)
+
+theta_cmc <- mean(I)
+var_cmc <- var(I) / n
+se_cmc <- sqrt(var_cmc)
+
+sk_lower <- theta_cmc - 1.96 * se_cmc
+sk_upper <- theta_cmc + 1.96 * se_cmc
+
+cat("Theta CMC:", round(theta_cmc, 6), "\n")
+cat("Varian CMC:", round(var_cmc, 10), "\n")
+cat("SK 95%: [", round(sk_lower, 6), ",", round(sk_upper, 6), "]\n")
+```
+
+## 3b
+
+Gunakan peubah acak antitesis dengan 1000 nilai contoh/sampel untuk menduga nilai $\theta = Pr (1 < X < 2)$. Duga juga ragam penduganya. Kemudian, duga efisiensi penduga antitesis relatif terhadap penduga CMC yang telah dihitung pada bagian (a). Berikan interpretasinya. Gunakan `set.seed(32)`.
+
+```{r}
+set.seed(32)
+m <- floor(n/2)
+u <- runif(m)
+
+z <- qnorm(u)
+z_anti <- qnorm(1-u)
+
+x <- exp(z)
+x_anti <- exp(z_anti)
+
+I <- ifelse(x > 1 & x < 2, 1, 0)
+I_anti <- ifelse(x_anti > 1 & x_anti < 2, 1, 0)
+Y <- (I + I_anti) / 2
+
+theta_anti <- mean(Y)
+var_anti <- var(Y) / m
+
+efisiensi <- var_cmc / var_anti
+
+cat("Theta antitesis:", round(theta_anti, 6), "\n")
+cat("Varian antitesis:", round(var_anti, 10), "\n")
+cat("Efisiensi:", round(efisiensi, 3), "\n")
+```
+Artinya pendugaan dengan metode antitesis 1.503 kali lebih efisien dibandingkan dengan metode CMC.
