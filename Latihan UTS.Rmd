@@ -1,0 +1,1130 @@
+---
+title: "Latihan UTS"
+author: "Antonius Aditya Rizky Wijaya"
+date: "2025-10-07"
+output: word_document
+---
+
+# Praktikum 1
+
+## 1
+
+```{r}
+UT <- c(89,31,60,31,24,40,23,25,44,21,36,45,72,43,33,71,45,47)
+UP <- c(70,45,28,29,21,67,49,21,57,60,33,59,65,57,65,71,83,85)
+
+rataut <- mean(UT)
+rataup <- mean(UP)
+svarut <- var(UT)
+svarup <- var(UP)
+stdevut <- sqrt(svarut)
+stdevup <- sqrt(svarup)
+
+tabel <- data.frame(
+  data = c("UT","UP"),
+  rata_rata = c(rataut, rataup),
+  varians = c(svarut, svarup),
+  stdev = c(stdevut, stdevup)
+)
+print(tabel)
+```
+
+```{r}
+plot(UT,UP)
+tabel2 <- data.frame(
+  covarian = cov(UT,UP),
+  korelasi = cor(UT,UP)
+)
+print(tabel2)
+```
+
+## 2
+
+```{r}
+tabel3 <- data.frame(
+  banyak_klaim = c(0,1,2,3,4),
+  banyak_polis = c(63232, 4333, 271, 18, 2)
+)
+print(tabel3)
+```
+
+
+```{r}
+klaim <- tabel3$banyak_klaim
+freq <- tabel3$banyak_polis
+n <- sum(freq)
+
+total_klaim <- sum(klaim * freq)
+mean_klaim <- total_klaim / n
+
+total_klaim_sq <- sum((klaim^2) * freq)
+var_klaim <- (total_klaim_sq / n) - (mean_klaim^2)
+
+cat("Rata-rata banyaknya klaim:", mean_klaim, "\n")
+cat("Ragam (variance) banyaknya klaim:", var_klaim, "\n")
+```
+
+```{r}
+lambda <- mean_klaim
+fmp <- dpois(klaim, lambda)
+
+data_klaim <- rep(klaim, freq)
+prob_empiris <- freq/n
+
+hist(data_klaim, breaks = seq(-0.5, 4.5, by = 1),prob=TRUE, ylim=c(0,1))
+lines(klaim, fmp)
+points(klaim, fmp)
+```
+
+```{r}
+polis_baru <- 74641
+param_exp <- 1/1000
+param_pois <- lambda
+
+total_besar_klaim <- numeric(1000)
+for(i in 1:1000){
+  klaim <- rpois(polis_baru, lambda=param_pois)
+  jumlah_klaim <- sum(klaim)
+  besarnya_klaim <- rexp(jumlah_klaim, rate=param_exp)
+  total_besar_klaim[i] <- sum(besarnya_klaim)
+}
+
+peluang <- mean(total_besar_klaim>5500000);peluang
+```
+
+
+## 3
+
+```{r}
+skew <- function(x){
+  n <- length(x)
+  xbar <- mean(x)
+  skewness <- (mean((x-xbar)^3))/((mean((x-xbar)^2))^(3/2))
+  return(skewness)
+}
+
+kurt <- function(x){
+  n <- length(x)
+  xbar <- mean(x)
+  kurtosis <- (mean((x-xbar)^4))/((mean((x-xbar)^2))^2)
+  return(kurtosis)
+}
+```
+
+```{r}
+set.seed(123)
+n_sim <- 1000
+x_sim <- rchisq(n_sim, df = 3) #chi kuadrat dengan derajat bebas 3
+
+skew_val <- skew(x_sim)
+kurt_val <- kurt(x_sim)
+
+# Visualisasi
+hist(x_sim, main = "Histogram dengan Kurva Kepadatan Chi-Kuadrat", xlab = "Nilai", ylab = "Densitas", col = "lightblue", prob = TRUE, breaks = 20)
+curve(dchisq(x, df = 3), col = "red", lwd = 2, add = TRUE, from = 0, to = max(x_sim))
+
+cat("Sample Skewness:", skew_val, "\n")
+cat("Sample Kurtosis:", kurt_val, "\n")
+```
+
+```{r}
+skew_val2 <- (2^(3/2))/sqrt(3) ; skew_val2
+kurt_val2 <- 3 + 12/3 ; kurt_val2
+```
+
+
+```{r}
+n_sim <- 1000
+x_sim <- (rchisq(n_sim, df=3))
+
+skewf <- NULL
+kurtf <- NULL
+for(i in 1:100){
+  skewf[i] <- skew(x_sim)
+  kurtf[i] <- kurt(x_sim)
+}
+
+sskewness <- mean(skewf); sskewness
+skurtosis <- mean(kurtf); skurtosis
+```
+
+## 4
+
+```{r}
+data <- read.csv("MSFT.csv")
+Pt <- data$Adj.Close
+rt <- numeric(length(Pt)-1)
+for(i in 2:length(Pt)){
+  rt[i-1] <- (Pt[i]/Pt[i-1])-1
+}
+summary(rt)
+hist(rt, prob=TRUE)
+```
+
+```{r}
+sigma0 <- mean(rt)
+sigma1 <- sd(rt)
+fitdistrplus::fitdist(rt, "norm", start = list(mean = sigma0, sd = sigma1))
+
+hist(rt, breaks = 30, prob=TRUE)
+x <- c(-1000:1000)/1000
+# x <- seq(min(rt), max(rt), length=100)
+y <- dnorm(x, mean=sigma0, sd=sigma1)
+lines(x,y)
+```
+
+```{r}
+ks.test(rt, "pnorm", mean=sigma0, sd=sigma1)
+```
+
+```{r}
+plot(ecdf(rt))
+xfsk <- c(-4:4)/100
+fsk <- pnorm(xfsk, mean=sigma0, sd=sigma1)
+lines(xfsk, fsk)
+```
+
+```{r}
+set.seed(123)
+harga_terakir <- tail(Pt,1)
+simulasi_harga <- numeric(1000)
+for(i in 1:1000){
+  rt_sim <- rnorm(2, mean=sigma0, sd=sigma1)
+  simulasi_harga[i] <- harga_terakir * prod(1 + rt_sim)
+}
+peluang_325 <- mean(simulasi_harga > 325); peluang_325
+
+```
+
+### KUIS
+
+```{r}
+data <- read.csv("MSFT.csv")
+Pt <- data$Adj.Close
+rt <- numeric(length(Pt)-1)
+for(i in 2:length(Pt)){
+  rt[i-1] <- (Pt[i]/Pt[i-1]-1)
+}
+set.seed(123)
+harga_terakir <- tail(Pt, 1)
+simulasi_harga <- numeric(1000)
+for(i in 1:1000){
+  rt_sim <- rnorm(5, mean=sigma0, sd=sigma1)
+  simulasi_harga[i] <- harga_terakir*prod(1+rt_sim)
+}
+
+peluang <- mean(simulasi_harga>325);peluang
+```
+
+
+# Praktikum 2
+
+## 1
+
+```{r}
+x <- c(0:3000)/1000
+fkpx <- dexp(x, rate=2)
+fkpy <- dexp(x, rate=4)
+fkpz <- dexp(x, rate=6)
+fkpw <- function(x){
+  4*exp(-4*x) + 2*exp(-2*x) - 6*exp(-6*x)
+}
+
+plot(x, fkpx, type="l", lwd=2)
+lines(x, fkpy, col="red", lwd=2)
+lines(x, fkpz, col="blue", lwd=2)
+lines(x, fkpw(x), col="green",lwd=2)
+```
+
+```{r}
+rw <- function(n){
+  x <- rexp(n, rate=2)
+  y <- rexp(n, rate=4)
+  pmax(x,y)
+}
+
+data_acak <- rw(1000)
+hist(data_acak, prob=TRUE, breaks=30)
+x <- c(0:3000)/1000
+lines(x, fkpw(x), col="green", lwd=2)
+```
+
+```{r}
+rz <- function(n){
+  x <- rexp(n, rate=2)
+  y <- rexp(n, rate=4)
+  pmin(x,y)
+}
+
+data_acak2 <- rz(1000)
+hist(data_acak2, prob=TRUE, breaks=30)
+x <- c(0:3000)/1000
+lines(x, fkpz, col="purple", lwd=2)
+```
+
+## 2
+
+pakai MLE, estimasi parameter $\hat{\theta}_1$ adalah:
+$$ \hat{\theta}_1 = -\frac{n}{\sum_{i=1}^n \ln x_i} - 1 $$
+```{r}
+x <- c(0.92, 0.79, 0.90, 0.65, 0.86, 0.47, 0.75, 0.92, 0.84)
+n <- length(x)
+thetahat1 <- -(n/sum(log(x)))-1; thetahat1
+```
+
+```{r}
+fitdistrplus::descdist(x, discrete = FALSE)
+fitdistrplus::fitdist(x, "beta")
+```
+
+dengan metode momen
+$$ \hat{\theta}_2 = \frac{2\bar{x} - 1}{1 - \bar{x}} $$
+```{r}
+thetahat2 <- (2*mean(x)-1)/(1-mean(x)); thetahat2
+```
+
+```{r}
+fkp2 <- function(x, theta){
+  (theta+1)*x^theta
+}
+hist(x, prob=TRUE)
+curve(fkp2(x, thetahat1), col="red", lwd=2, add=TRUE)
+curve(fkp2(x, thetahat2), col="blue", lwd=2, add=TRUE)
+```
+
+```{r}
+loglik <- function(x, theta){
+  n <- length(x)
+  return((n*log(theta + 1)) + (theta * sum(log(x))))
+}
+
+loglik(x, thetahat1)
+loglik(x, thetahat2)
+```
+
+## 3
+dengan MLE 
+$$ \hat{\sigma}_1 = \frac{1}{n} \sum_{i=1}^n |x_i| $$
+
+dengan metode momen
+$$ \hat{\sigma}_2 = \sqrt{\frac{1}{2} \cdot \frac{1}{n} \sum_{i=1}^n (x_i-\bar x)^2} $$
+
+```{r}
+return <- c(-1, -0.02, -0.015, 0.006, 0.015, 0.021, 0.75, 1)
+freq <- c(1, 1650, 2, 1, 3, 1550, 1, 1)
+x <- rep(return, freq)
+
+sigma1 <- mean(abs(x))
+sigma2 <- sqrt(sum((x - mean(x))^2)/(2*length(x)))
+
+cat("MLE sigma1 =", sigma1, "\n")
+cat("MM sigma2 =", sigma2)
+```
+
+```{r}
+fkp_laplace <- function(x, sigma){
+  (1/(2*sigma)) * exp(-abs(x)/sigma)
+} 
+hist(x, prob=TRUE, breaks=30)
+sumbux <- c(-1000:1000)/1000
+lines(sumbux, fkp_laplace(sumbux, sigma1), col="red", lwd=2)
+
+hist(x, prob=TRUE, breaks=30)
+sumbux <- c(-1000:1000)/1000
+lines(sumbux, fkp_laplace(sumbux, sigma2), col="green", lwd=2)
+```
+
+## 4
+
+```{r}
+dataA <- c(160, 175, 180, 185, 185, 185, 190, 190, 195, 195, 195, 200, 200, 200, 200, 205, 205, 210, 210, 218, 219, 220, 222, 225, 225, 232)
+
+dataB <- c(155, 155, 160, 160, 160, 166, 170, 175, 175, 175, 180, 185, 185, 185, 185, 185, 185, 185, 190, 190, 190, 190, 190, 195, 195, 195, 195, 200, 205, 207, 210, 211, 230)
+```
+
+```{r}
+hist(dataA)
+```
+
+```{r}
+library(fitdistrplus)
+fit_normal <- fitdist(dataA, "norm"); fit_normal
+descdist(dataA, discrete = FALSE)
+logLik(fit_normal)
+```
+
+```{r}
+library(fitdistrplus)
+fit_gamma <- fitdist(dataA, "gamma"); fit_gamma
+descdist(dataA, discrete = FALSE)
+logLik(fit_gamma)
+```
+
+```{r}
+hist(dataA, prob=TRUE, breaks=10) 
+x <- c(150:250)
+y1 <- dnorm(x, mean=fit_normal$estimate[1], sd=fit_normal$estimate[2])
+y2 <- dgamma(x, shape=fit_gamma$estimate[1], rate=fit_gamma$estimate[2])
+lines(x, y1, col="red", lwd=2)
+lines(x, y2, col="blue", lwd=2)
+```
+
+```{r}
+t.test(dataA, dataB, conf.level = 0.95, var.equal = FALSE, paired = FALSE)
+```
+
+```{r}
+kelas_A <- c(70, 65, 81, 85, 80, 60, 50, 83, 77, 81, 65, 45, 40, 52, 82, 80, 62, 46, 42, 61)
+kelas_B <- c(70, 65, 81, 87, 80, 62, 50, 88, 78, 80, 65, 45, 42, 60, 83, 80, 63, 45, 45, 61)
+
+perbedaan <- kelas_A - kelas_B
+n <- length(perbedaan)
+
+mean_beda <- mean(perbedaan)
+sd_beda <- sd(perbedaan)
+
+# Nilai kritis t untuk 95% kepercayaan, derajat bebas = n-1
+# Gunakan qt() untuk quantile t, dengan alpha/2 = 0.025 (two-tailed)
+c <- qt(0.975, df = n - 1)
+error <- c * (sd_beda / sqrt(n))
+
+# Selang kepercayaan 95%
+lower_bound <- mean_beda - error
+upper_bound <- mean_beda + error
+
+cat("Rata-rata perbedaan:", mean_beda, "\n")
+cat("Standar deviasi perbedaan:", sd_beda, "\n")
+cat("Selang kepercayaan 95%:", lower_bound, "hingga", upper_bound, "\n")
+```
+
+```{r}
+t.test(kelas_A, kelas_B, conf.level = 0.95, var.equal = TRUE, paired = TRUE)
+```
+
+# Praktikum 3
+
+## 1
+
+```{r}
+kelas_a <- c(70, 65, 81, 85, 80, 60, 50, 83, 77, 81, 65, 45, 40, 52, 82, 80, 62, 46, 42, 61)
+kelas_b <- c(70, 65, 81, 87, 80, 62, 50, 88, 78, 80, 65, 45, 42, 60, 83, 80, 63, 45, 45, 61)
+
+# Manual
+selisih <- kelas_b - kelas_a
+
+diskrepansi <- (mean(selisih) - 5) / (sd(selisih)/sqrt(length(selisih)))
+cat("Diskrepansi:", diskrepansi, "\n")
+
+p_value <- 1 - pnorm(diskrepansi)
+cat("p-value:", p_value, "\n")
+```
+
+## 2
+```{r}
+n <- 49
+mu <- 11.35
+sigma <- 0.48
+
+z_krit <- qnorm(0.975)
+error <- z_krit*sqrt((sigma^2)/n)
+
+atas <- mu + error
+bawah <- mu - error
+
+cat("Selang kepercayaan: [", bawah, atas, "]")
+```
+
+```{r}
+mu0 <- 11
+diskrepansi <- (mu - mu0) / (sigma/sqrt(n))
+p_value <- pnorm(diskrepansi); p_value
+```
+pvalue = 0.99 > 0.1, sehingga tidak ada bukti untuk tolak H0, artinya nilai rata rata harga saham akan lebih dari 11 dollar setelah 20 hari.
+
+## 3
+
+```{r}
+waktu_1_kasir <- c(2,1,1,1,1,1,1,3,3,2,2,2,4,3,2,2,2,2,1,2,2,2,2,3,3,3,2,1,1,1,1,1,2,3,3,4,4,2,2,2,2,2,2,2,2)
+waktu_2_kasir <- c(1,1,1,1,1,1,1,3,3,1,1,2,2,2,3,3,2,2,2,2,3,3,1,1,1,1,2,3,3,3,2,2,2,1,1,1,1,1,2,3,3,4,3,3,3,2,1,1,2,3,1,2,2,1)
+
+# Manual
+berhasil1 <- sum(waktu_1_kasir <= 2)
+n1 <- length(waktu_1_kasir)
+
+berhasil2 <- sum(waktu_2_kasir <= 2)
+n2 <- length(waktu_2_kasir)
+
+pi1 <- berhasil1/n1
+pi2 <- berhasil2/n2
+pi <- ((n1*pi1) + (n2*pi2))/(n1 + n2)
+
+diskrepansi <- (pi1 - pi2) / (sqrt((1-pi)*pi*((1/n1)+(1/n2))))
+cat("Diskrepansi:", diskrepansi, "\n")
+
+p_value <- 2 * (1 - pnorm(abs(diskrepansi)))
+cat("p-value:", p_value, "\n")
+```
+
+## 4
+dari diskrepansi bisa di dapat nilai $\hat\pi$
+```{r}
+d <- qnorm(0.1);d
+pi_duga <- 0.010288
+n <- 123
+z_crit <- qnorm(0.975);z_crit
+se <- sqrt((pi_duga*(1-pi_duga))/n);se
+error <- z_crit * se;error
+
+atas <- pi_duga + error;atas
+bawah <- pi_duga - error;bawah
+cat("Selang kepercayaan: [", max(0,bawah), ",", atas, "]\n")
+
+n_total <- 1432000
+atas_total <- atas * n_total;atas_total
+bawah_total <- max(0,bawah)*n_total;bawah_total
+
+cat("Selang kepercayaan total klaim: [", bawah_total, ",", atas_total, "]")
+```
+
+
+# Praktikum 4
+
+## 1
+
+```{r}
+set.seed(123)
+gam <- rgamma(100, shape=1/2, scale=2) #chi^2 df = 1
+tanda <- ifelse(runif(100)>0.5, 1, -1)
+data <- tanda*sqrt(gam)
+
+x <- c(-Inf, -2, -1, 0, 1, 2, Inf)
+hist(data, breaks = x, xlim = c(-3,3))
+oi <- hist(data, breaks=x, plot=FALSE)$counts
+names(oi) <- c("(-inf,-2)", "[-2,-1)", "[-1,0)", "[0,1)", "[1,2)", "[2,inf)")
+print("Tabel Frekuensi Observasi:")
+print(oi)
+
+pi_i <- c(pnorm(-2), pnorm(-1)-pnorm(-2), pnorm(0)-pnorm(-1), pnorm(1)-pnorm(0), pnorm(2)-pnorm(1), 1-pnorm(2))
+ei <- n*pi_i
+
+d <- sum((oi - ei)^2 / ei)
+
+p_value <- 1 - pchisq(d, df = (length(oi)-1));p_value
+```
+
+
+```{r}
+orang <- 0:6
+jam <- c(0, 6, 5, 4, 4, 3, 2)
+data_pengunjung <- rep(orang, jam)
+total_orang <- sum(jam * orang)
+n <- length(data_pengunjung)
+lambda <- total_orang / n
+
+x <- c(0:15)
+y <- dpois(x, lambda = lambda)
+plot(x,y)
+
+data_fmp <- data.frame(x,round(y, 4))
+colnames(data_fmp) <- c("x", "f(x)")
+print(data_fmp)
+```
+
+```{r}
+prob <- dpois(2,lambda = lambda) + dpois(3, lambda = lambda) + dpois(6, lambda = lambda); prob
+```
+
+```{r}
+o1 <- NULL
+o2 <- NULL
+
+for(i in data_pengunjung){
+  if(i==2 | i==3 | i==6) o1 <- c(o1,i)
+  else o2 <- c(o2,i)
+}
+oi <- c(length(o1),length(o2))
+
+e1 <- n*prob
+e2 <- n*(1-prob)
+ei <- c(e1,e2)
+
+d <- sum((oi-ei)^2/ei);d
+p_value <- 1 - pchisq(d, df=length(oi)-1);p_value
+```
+
+```{r}
+ks.test(data_pengunjung, "ppois", lambda=lambda)
+```
+
+## 3
+
+```{r, warning=FALSE}
+data3 <- c(6.5, 4.6, 5.6, 8.5, 6.0, 6.9, 4.4, 6.3, 6.2, 7.0, 5.7, 6.1)
+
+library(fitdistrplus)
+nor <- fitdist(data3, "norm", method = "mle", discrete = FALSE)
+lno <- fitdist(data3, "lnorm", method = "mle", discrete = FALSE)
+gamm <- fitdist(data3, "gamma", method = "mle", discrete = FALSE)
+```
+
+```{r}
+logLik(nor)
+logLik(lno)
+logLik(gamm)
+```
+Gamma fit terbaik dengan nilai loglikelihood terbesar.
+
+```{r}
+set.seed(123)
+x <- c(4000:9000)/1000
+y <- pgamma(x, shape=gamm$estimate["shape"], rate=gamm$estimate["rate"])
+plot(ecdf(data3))
+lines(x,y, col="red", lwd=1)
+
+```
+
+agar ei > 5 maka harus bagi 2 selang agar pi = 1/2 dan ei=12*pi=6
+```{r}
+set.seed(123)
+ei <- 6
+q <- qgamma(0.5, shape=gamm$estimate["shape"], rate=gamm$estimate["rate"])
+o1 <- sum(data3<=q)
+o2 <- sum(data3>q)
+oi <- c(o1,o2)
+
+d <- sum((oi-ei)^2/ei);d
+p_value <- 1 - pchisq(d, df=length(oi)-1);p_value
+```
+
+```{r}
+ks.test(data3, "pgamma", shape = gamm$estimate["shape"], rate = gamm$estimate["rate"])
+```
+
+```{r}
+nilai <- c(30, 47,
+84, 54, 56, 70, 45, 10, 21, 61, 52, 61)
+
+library(fitdistrplus)
+fitdist(nilai, "norm")
+ks.test(nilai, "pnorm", mean=49.25, sd=19.83736)
+```
+
+
+# Praktikum 5
+
+## 1
+
+```{r}
+PKL <- function(x0,a,c,m,n){
+  out <- NULL
+  xn <- x0
+  for(i in 1:n){
+    xn <- (a*xn+c)%%m
+    out <- c(out,xn)
+  }
+  return(out)
+}
+
+dereta <- PKL(3,2,3,5,7); dereta
+deretb <- PKL(3,2,3,5,100)[100];deretb
+
+period <- function(x0, a, c, m, n){
+  pkl <- PKL(x0, a, c, m, n)
+  for(i in 2:n){
+    if(pkl[i] == pkl[1]){
+      periode <- i-1
+      break
+    }
+  }
+  return(periode)
+}
+
+period(3,2,3,5,7)
+period(5,2,3,5,7)
+period(2,2,3,5,7)
+```
+
+## 2
+
+> 1. FPB dari $m$ dan $c$ adalah 1
+
+> 2. Faktor-faktor prima dari $m$ membagi $a-1$
+
+> 3. Jika $4$ membagi $m$, maka $4$ harus membagi $a-1$
+
+```{r}
+library(numbers)
+cekmaxperiod <- function(a,c,m){
+  if(GCD(c,m)!=1) return(FALSE)
+  for(i in primeFactors(m)){
+    if((a-1)%%i !=0) return(FALSE)
+  }
+  if (m %% 4 == 0 && (a-1) %% 4 != 0) return(FALSE)
+  return(TRUE)
+}
+
+cekmaxperiod(43,5,84)
+cekmaxperiod(43,5,126)
+```
+
+## 3
+
+```{r}
+cekmaxperiod(1,5,13)
+deret3b <- PKL(17,1,5,13,5);deret3b
+un <- deret3b/13 ; un
+```
+
+## 4
+
+```{r}
+data <- c("7711", "2379", "1048", "4956", "9874", "0670", "3668", "4097", "6625", "9824", "0862", "5733", "6300", "2305", "9159", "3853", "7372", "9223", "5335", "3311")
+
+digit_beda <- function(x){
+  bil <- unlist(strsplit(x, ""))
+  length(unique(bil))==length(bil)
+}
+
+beda <- 0
+sama <- 0
+for(i in data){
+  ifelse(digit_beda(i) == TRUE, beda <- beda + 1, sama <- sama + 1)
+}
+
+#atau hitung manual aja kalau masih memungkinkan
+
+tabel <- data.frame(Nilai = c("Digit berbeda", "Digit sama"), Frekuensi = c(beda, sama));tabel
+```
+
+```{r}
+prob  <- (10/10)*(9/10)*(8/10)*(7/10)
+n <- length(data)
+oi <- c(beda, sama)
+pi_i <- c(prob, 1-prob)
+ei <- pi*n
+
+d <- sum((oi-ei)^2/ei);d
+p_value <- 1 - pchisq(d, df=length(oi)-1);p_value
+```
+_p-value_ $= 0.3522 > 0.1$, sehingga tidak ada bukti untuk menolak $H_0$. Artinya dengan kepercayaan $95$%, kita yakin bahwa datanya acak menyebar multinomial dan lulus uji poker.
+
+## 5
+
+```{r}
+r <- 1
+luas_total <- 4
+luas_A <- (3/4)*pi*r^2
+luas_B <- (1/4)*pi*r^2
+luas_C <- 4 - pi*r^2
+pi_A <- luas_A/luas_total
+pi_B <- luas_B/luas_total
+pi_C <- luas_C/luas_total
+
+A <- 18
+B <- 11
+C <- 11
+
+n <- A+B+C
+o_i <- c(A,B,C)
+pi_i <- c(pi_A, pi_B, pi_C)
+e_i <- pi_i*n
+
+diskrepansi <- sum((o_i-e_i)^2 / e_i)
+pvalue <- 1-pchisq(diskrepansi, df = length(e_i)-1)
+
+cat("Diskrepansi =", diskrepansi, "\n")
+cat("p-value =", pvalue)
+```
+pvalue = 0.1966 > 0.1, sehingga tidak ada alasan untuk menolak H0. Artinya data acak seragam dalam 2 dimensi
+
+## 6
+
+```{r}
+PKK <- function(x0,a,b,c,m,n){
+  out <- NULL
+  xn <- x0
+  for (i in 1:n){
+    xn <- (a*xn^2 + b*xn +c)%%m
+    out <- c(out,xn)
+  }
+  return(out)
+}
+
+m <- 211^2
+
+deret6 <- PKK(1,422,634,424,m,200)
+```
+
+```{r}
+un <- deret6[17:116] / m
+print(head(un, 5))
+```
+
+```{r}
+x <- un[1:99]
+y <- un[2:100]
+titik <- data.frame(x = x, y = y)
+print(head(titik, 4))
+
+plot(titik$x, titik$y, xlab = "x", ylab = "y", pch = 19, col = "blue", xlim = c(0,1), ylim = c(0,1))
+grid()
+abline(h = 0.5, v = 0.5)
+```
+
+```{r}
+koor1 <- 0
+koor2 <- 0
+koor3 <- 0
+koor4 <- 0
+
+for(i in 1:length(x)){
+  if(x[i] > 0.5 && y[i] > 0.5) koor1 <- koor1 + 1
+  if(x[i] < 0.5 && y[i] > 0.5) koor2 <- koor2 + 1
+  if(x[i] < 0.5 && y[i] < 0.5) koor3 <- koor3 + 1
+  if(x[i] > 0.5 && y[i] < 0.5) koor4 <- koor4 + 1
+}
+
+tabel <- data.frame(Koordinat = c("I", "II", "III", "IV"), Frekuensi = c(koor1, koor2, koor3, koor4)) ; tabel
+```
+
+```{r}
+n <- length(x)
+oi <- tabel$Frekuensi
+pi_i <- c(1/4,1/4,1/4,1/4)
+ei <- pi_i*n
+
+d <- sum((oi-ei)^2/ei);d
+p_value <- 1 - pchisq(d, df=length(oi)-1);p_value
+```
+pvalue = 0.92 > 0.1, sehingga tidak ada bukti untuk menolak H0. Artinya data acak dalam 2 dimansi.
+
+### KUIS
+
+```{r}
+PKI <- function(x0, a, c, m, n){
+  xn <- numeric(n)
+  xn[1] <- x0
+  for(i in 2:n){
+    if (xn[i-1]>=1){
+      inv <- which((xn[i-1] * (1:(m-1))) %% m == 1)
+      xn[i] <- (a*inv+c)%%m
+    }
+    else xn[i] <- c
+  }
+  return(xn)
+}
+
+data <- PKI(17, 9, 6, 1024, 512)
+```
+
+
+```{r}
+x <- data[1:255]/1024
+y <- data[2:256]/1024
+tabel <- data.frame(x,y)
+print(tabel)
+plot(tabel)
+abline(h=0.5,v=0.5,col="black")
+```
+
+```{r}
+koor1 <- 0
+koor2 <- 0
+koor3 <- 0
+koor4 <- 0
+
+for (i in 1:length(x)){
+  if (x[i] > 0.5 && y[i] > 0.5) koor1 <- koor1 +1
+  if (x[i] > 0.5 && y[i] < 0.5) koor2 <- koor2 + 1
+  if (x[i] < 0.5 && y[i] > 0.5) koor3 <- koor3 + 1
+  if (x[i] < 0.5 && y[i] < 0.5) koor4 <- koor4 + 1
+}
+
+tabel_koor <- data.frame(Koordinat = c("I", "II", "III", "IV"), Frekuensi = c(koor1, koor2, koor3, koor4)); tabel_koor
+```
+
+```{r}
+n <- length(x)
+oi <- tabel_koor$Frekuensi
+pi_i <- c(1/4,1/4,1/4,1/4)
+ei <- pi_i*n
+
+d <- sum((oi-ei)^2/ei);d
+pvalue <- 1 - pchisq(d, df = length(oi)-1);pvalue
+```
+pvalue = 0.55 > 0.1, sehingga tidak ada bukti untuk menolak H0. Artinya kita mungkin percaya bahwa pasangan terurut (x,y) yang dihasilkan oleh PKI berdistribusi uniform pada (0,1) x (0,1)
+
+
+# Praktikum 6
+
+## 1
+
+```{r}
+algoritma1a <- function(n){
+  u1 <- runif(n)
+  u2 <- runif(n)
+  x1 <- u1^(1/3)+1
+  x2 <- 2^u2
+  x <- pmax(x1,x2)
+  return(x)
+}
+
+algoritma1b <- function(n){
+  u1 <- runif(n)
+  u2 <- runif(n)
+  x <- NULL
+  for(i in 1:n){
+    if(u1[i]<2/5) 
+      xi <- -log(1-u1[i]) / 5
+    else{
+      xi <- u2[i]/(2 - 2*u2[i])
+    }
+    x <- c(x,xi)
+  }
+  return(x)
+}
+
+algoritma1f <- function(n){
+  u1 <- runif(n)
+  u2 <- runif(n)
+  x1 <- -2*log(u1)
+  x2 <- x2 <- sqrt(-2*log(u2))
+  x <- pmin(x1, x2)
+  return(x)
+}
+```
+
+
+```{r}
+set.seed(123)
+sima <- algoritma1a(1000)
+x <- c(1000:2000)/1000
+y <- ((3*(x-1)^2 * log(x)) + (((x-1)^3)/x)) / log(2)
+hist(sima, prob=TRUE)
+lines(x,y)
+
+simb <- algoritma1b(1000)
+x <- c(0:1100*max(simb))/1000
+y <- 2*exp(-5*x) + 2/((1+2*x)^2)
+hist(simb, prob=TRUE)
+lines(x,y)
+
+simf <- algoritma1f(1000)
+x <- c(0:6000)/1000
+y <- (1/2 + x) * exp(-(x/2) - ((x^2)/2))
+hist(simf, prob=TRUE)
+lines(x,y)
+```
+
+### KUIS
+
+```{r}
+kuis <- function(n){
+  u1 <- runif(n)
+  u2 <- runif(n)
+  u3 <- runif(n)
+  x <- NULL
+  for(i in 1:n){
+    if(u3[i]<(3/4)){
+      x3 <- (1/2)*(1/u1[i] - 1)
+      x4 <- (1/3)*(1/u2[i] - 1)
+      xi = min(x3,x4)
+    }
+    else{
+      x1 <- -(1/2)*log(1-u1[i])
+      x2 <- -(1/3)*log(1-u2[i])
+      xi = max(x1,x2)
+    }
+    x <- c(x,xi)
+  }
+  return(x)
+}
+
+set.seed(123)
+simkuis <- kuis(1000)
+hist(simkuis, prob=TRUE)
+```
+
+
+# Praktikum 7
+
+## 2
+
+```{r}
+set.seed(21)
+u <- runif(1000)
+h <- (1 / sqrt(2 * pi)) * exp(-u^2 / 2)
+var_h <- var(h)
+c <- 1.96
+E <- 0.001
+n <- ceiling((c^2 * var_h)/E^2);n
+
+```
+```{r}
+set.seed(22)
+x <- runif(n)
+g <- (1 / sqrt(2 * pi)) * exp(-x^2 / 2)
+theta_duga <- mean(g)
+theta <- pnorm(1)-pnorm(0)
+var_duga <- var(g)/n
+cat("theta duga:", theta_duga, "\n")
+cat("theta:", theta, "\n")
+cat("var penduga:", var_duga, "\n")
+cat("error :" , abs(theta_duga - theta))
+```
+akurat sampai 3 angka dibelakang koma, errornya < 0.001 satuan
+
+```{r}
+set.seed(23)
+m <- floor(n/2)
+u_anti <- runif(m)
+theta_anti <- sum(exp(-u_anti^2 / 2) * (1 + exp(-0.5 + u_anti))) / (n * sqrt(2 * pi))
+
+g_xi <- (1 / sqrt(2 * pi)) * exp(-u_anti^2 / 2)
+g_yi <- (1 / sqrt(2 * pi)) * exp(-(1 - u_anti)^2 / 2)
+var_anti <- var((g_xi+g_yi)/2)/ m
+
+error_anti <- abs(theta_anti - theta)
+cat("Theta =", theta, "\n")
+cat("Theta antitesis:", theta_anti, "\n")
+cat("Error antitesis:", error_anti, "\n")
+cat("Varian antitesis:", var_anti, "\n")
+
+```
+
+```{r}
+eff <- var_duga/var_anti ;eff
+```
+
+## 3
+
+```{r}
+set.seed(31)
+x <- rlnorm(1000, mean=0, sd=1)
+I <- ifelse(x>1&x<2, 1, 0)
+
+theta_cmc <- mean(I)
+var_cmc <- var(I)/1000
+se_cmc <- sqrt(var_cmc)
+
+atas <- theta_cmc + 1.96*se_cmc
+bawah <- theta_cmc - 1.96*se_cmc
+
+cat("Theta CMC:", round(theta_cmc, 6), "\n")
+cat("Varian CMC:", round(var_cmc, 10), "\n")
+cat("SK 95%: [", round(bawah, 6), ",", round(atas, 6), "]\n")
+```
+
+```{r}
+set.seed(32)
+m <- floor(1000/2)
+u <- runif(m)
+
+z <- qnorm(u)
+z_anti <- qnorm(1-u)
+
+x <- exp(z)
+x_anti <- exp(z_anti)
+
+I <- ifelse(x > 1 & x < 2, 1, 0)
+I_anti <- ifelse(x_anti > 1 & x_anti < 2, 1, 0)
+Y <- (I + I_anti) / 2
+
+theta_anti <- mean(Y)
+var_anti <- var(Y) / m
+
+efisiensi <- var_cmc / var_anti
+
+cat("Theta antitesis:", round(theta_anti, 6), "\n")
+cat("Varian antitesis:", round(var_anti, 10), "\n")
+cat("Efisiensi:", round(efisiensi, 3), "\n")
+```
+
+# UTS
+
+## 1
+
+```{r}
+panalitik <- pgamma(1, shape = 2, rate=0.5); panalitik
+
+psim <- function(n){
+  x1 <- rexp(n, rate=0.5)
+  x2 <- rchisq(n, 2)
+  mean((x1+x2)<1)
+}
+set.seed(123)
+psim(1000)
+psim(10000)
+psim(100000)
+```
+
+## 2
+
+```{r}
+data <- c(2.1,2.1,4.0,4.0,4.0,4.0,4.0,4.0,6.2,6.2,6.2,6.2,10.0,11.5)
+
+ecdf(data)
+
+theta_duga <- mean(data)/(mean(data)-2); theta_duga
+```
+```{r}
+FSK <- function(x, theta){
+  y <- 1-((2/x)^theta)
+  return(y)
+}
+plot(ecdf(data), col="red")
+
+x <- c(200:1400)/100
+lines(x, FSK(x, theta_duga), col="blue")
+```
+
+## 3
+
+H0 : data menyebar FKP
+Ha : data tidak menyebar FKP
+
+```{r}
+u_data <- unique(data)
+n <- length(u_data)
+F_empi <- ecdf(data)
+F <- FSK(u_data, theta_duga)
+
+upper <- F_empi(u_data)
+lower <- F_empi(c(-Inf,u_data[-n]))
+                
+datas <- upper - F ;datas
+dbawah <- F - lower ;dbawah
+d <- max(abs(datas),abs(dbawah));d
+```
+
+```{r}
+sim1 <- c(2.0, 2.1, 2.1, 2.3, 2.3, 2.4, 2.5, 2.5, 2.5, 2.7, 3.2, 3.5, 4.4,
+7.9)
+sim2 <- c(2.1, 2.1, 2.4, 2.5, 2.5, 3.2, 3.2, 4.1, 4.3, 4.3, 4.9, 5.0, 5.5,
+10.1)
+sim3 <- c(2.1, 2.1, 2.1, 2.1, 2.2, 2.5, 3.1, 3.2, 3.8, 4.3, 4.8, 6.7, 6.9,
+7.4)
+sim4 <- c(2.0, 2.1, 2.2, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.1, 4.6, 4.6, 4.7,
+7.6)
+sim5 <- c(2.1, 2.1, 2.2, 2.4, 2.5, 2.7, 2.8, 3.2, 3.9, 4.0, 4.4, 4.6, 5.2,
+5.6)
+sim6 <- c(2.0, 2.0, 2.3, 2.3, 2.3, 2.3, 2.4, 2.6, 2.7, 3.2, 3.6, 4.4, 6.8,
+10.0)
+```
+
+```{r}
+ks.test(data, function(x) FSK(x, theta_duga))
+
+ks.test(sim1, function(x) FSK(x, theta_duga))
+
+ks.test(sim2, function(x) FSK(x, theta_duga))
+
+ks.test(sim3, function(x) FSK(x, theta_duga))
+
+ks.test(sim4, function(x) FSK(x, theta_duga))
+
+ks.test(sim5, function(x) FSK(x, theta_duga))
+
+ks.test(sim6, function(x) FSK(x, theta_duga))
+```
+
